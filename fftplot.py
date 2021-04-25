@@ -33,11 +33,12 @@ def fftplot(signal, fs, fbase,
     assert Window != 'rectangle'
     assert Window != 'blackmanharris'
     assert Window != 'flattop'
+    #TODO calc fbase when not given
 
     N = len(signal)
     half_N = int(N / 2) + 1
 
-    # | variable        | definition                    | array length      |
+    # | variable        | definition                    | length            |
     # | signal          | signal in, Time domain        | N                 |
     # | signal_k        | sample counts, Time domain    | N                 |
     # | winN            | window for fft                | N                 |
@@ -48,9 +49,14 @@ def fftplot(signal, fs, fbase,
     # | fft_mod_dbfs    | dBFS, Spectrum domain         | int(N / 2) + 1    |
     # | fft_phase       | Phase, Spectrum domain        | int(N / 2) + 1    |
     # | fft_hd_bins     | Harmonic Bins                 | X, base + HD2-X   |
-    # | fft_hd_freqs    | Harmonic distortion frequency | X, base + HD2-X   |
+    # | fft_hd_freqs    | Harmonic frequency            | X, base + HD2-X   |
     # | fft_hd_amps     | Harmonic distortion amplitude | X, base + HD2-X   |
     # | fft_hd_dbfs     | Harmonic distortion dBFS      | X, base + HD2-X   |
+    # | fft_mod_spur    | Spurious Amplitude            | int(N / 2) + 1    |
+    # | fft_spur_bin    | Peak spurious Bins            | 1                 |
+    # | fft_spur_freq   | Peak spurious frequency       | 1                 |
+    # | fft_spur_amp    | Peak spurious Noise amplitude | 1                 |
+    # | fft_spur_dbfs   | Peak spurious Noise dBFS      | 1                 |
 
     ### FFT ###
     signal_k = np.arange(N)
@@ -84,9 +90,11 @@ def fftplot(signal, fs, fbase,
         # Nomalized : dB
         fft_mod_dbfs = util.vratio2db_np(fft_mod_dbfs)
 
+    ### ANALYSIS ###
+    # Harmonic distortion
     # fbase hd2 hd3 ... hdx  bins & freqs & powers
     # TODO fold freq
-    fft_hd_bins = np.zeros(HDx_max)
+    fft_hd_bins = np.zeros(HDx_max, dtype = int)
     fft_hd_freqs = np.zeros(HDx_max)
     fft_hd_amps = np.zeros(HDx_max)
     fft_hd_dbfs = np.zeros(HDx_max)
@@ -97,6 +105,21 @@ def fftplot(signal, fs, fbase,
         fft_hd_amps[i] = fft_mod[fbase_index]
         fft_hd_dbfs[i] = fft_mod_dbfs[fbase_index]
 
+    # Spurious
+    # Peak Harmonic or Spurious Noise
+    # Calc peak power except [DC : DC + L], [Signal - L : Signal + L]
+    # TODO replace signal_bin
+    signal_bin = round(fbase * (0 + 1) / fs * N)
+    current_window_mainlobe = fftwin.get_window_mainlobe_width(window = Window)
+    fft_mod_spur = np.copy(fft_mod)
+    fft_mod_spur[0 : 0 + current_window_mainlobe + 1] = 0
+    fft_mod_spur[signal_bin - current_window_mainlobe : signal_bin + current_window_mainlobe + 1] = 0
+    fft_spur_bin = np.argmax(fft_mod_spur)
+    fft_spur_freq = fft_freq[fft_spur_bin]
+    fft_spur_amps = fft_mod[fft_spur_bin]
+    fft_spur_dbfs = fft_mod_dbfs[fft_spur_bin]
+
+    ### GUI ###
     # GUI Config
     mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei']
     mpl.rcParams['axes.unicode_minus'] = False
@@ -136,9 +159,14 @@ def fftplot(signal, fs, fbase,
                 plt.ylim(top = 1)
         
         # Marker
+        # TODO same point of hdx and spur
+        # HDx
         colors = np.random.rand(HDx_max)
         plt.scatter(fft_hd_freqs, fft_hd_dbfs, s = 100, c = colors, alpha = 1, marker = 'x', zorder = 101)
         plt.text(fft_hd_freqs[0], fft_hd_dbfs[0], '%.3f Hz, %.3f %s' %( fft_hd_freqs[0], fft_hd_dbfs[0], Nomalized), zorder = 102)
+        # Spur
+        colors = np.random.rand(1)
+        plt.scatter(fft_spur_freq, fft_spur_dbfs, s = 100, c = colors, alpha = 1, marker = '+', zorder = 103)
 
     if PlotSP == True:
         # Phase Spectrum Plot
@@ -156,11 +184,15 @@ def fftplot(signal, fs, fbase,
         plt.gca().yaxis.set_major_locator(ymajorLocator)
         plt.gca().yaxis.set_major_formatter(ymajorFormatter)
 
+    ### REPORT ###
     # Report
-    print('| ------ | ------------- | --------------- |')
+    print('| ---- | ------------- | --------------- |')
+    # HDx
     for i in range(HDx_max):
-        print('| %s | %10.3f Hz | %10.3f %s |'%(' BASE ' if i == 0 else 'HD%4d'%(i + 1),fft_hd_freqs[i], fft_hd_dbfs[i], Nomalized ))
-    print('| ------ | ------------- | --------------- |')
+        print('| %s | %10.3f Hz | %10.3f %s |'%('BASE' if i == 0 else 'HD%2d'%(i + 1),fft_hd_freqs[i], fft_hd_dbfs[i], Nomalized ))
+    print('| ---- | ------------- | --------------- |')
+    print('| %s | %10.3f Hz | %10.3f %s |'%('SPUR',fft_spur_freq, fft_spur_dbfs, Nomalized ))
+    print('| ---- | ------------- | --------------- |')
 
     plt.show()
 
@@ -179,7 +211,7 @@ if __name__ == '__main__':
 
     adcout = adcmodel.adcmodel(N = N, fs = fs, FS = FS, 
         Wave = Wave, Wave_freq = Wave_freq, Wave_offset = Wave_offset,
-        adc_bits = 16)
+        adc_bits = 24)
     
     # Time
     #fftplot(signal = adcout, fs = fs, Zoom = 'Part', Zoom_fin = min(Wave_freq) * 0.995, Nomalized = 'dBFS', FS = FS)
@@ -194,5 +226,5 @@ if __name__ == '__main__':
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'blackmanharris')
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'flattop')
     #fftplot(signal = adcout, fs = fs, fbase = Wave_freq, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D')
-    fftplot(signal = adcout, fs = fs, fbase = Wave_freq, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
-    #fftplot(signal = adcout, fs = fs, fbase = Wave_freq, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq, PlotT = False, PlotSA = True, PlotSP = False)
+    #fftplot(signal = adcout, fs = fs, fbase = Wave_freq, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
+    fftplot(signal = adcout, fs = fs, fbase = Wave_freq, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq, PlotT = False, PlotSA = True, PlotSP = False)
