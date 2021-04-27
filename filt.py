@@ -17,14 +17,14 @@ H_dB = 20 * np.log10(abs(H))
 H_dB -= np.max(H_dB)
 
 #plt.semilogx(w, 20 * np.log10(abs(H)))
-plt.plot(w/  math.pi, H_dB)
+plt.plot(w / math.pi, H_dB)
 plt.title('Filter frequency response')
 plt.xlabel('Frequency [radians / second]')
 plt.ylabel('Amplitude [dB]')
 plt.margins(0, 0.1)
-plt.ylim(top = 1, bottom = -120)
+plt.ylim(top=1, bottom=-120)
 plt.grid(which='both', axis='both')
-#plt.axvline(100, color='green') # cutoff frequency
+# plt.axvline(100, color='green') # cutoff frequency
 xmajorLocator = MultipleLocator(0.05 * math.pi)
 xmajorFormatter = FormatStrFormatter('%5.2f π')
 plt.gca().xaxis.set_major_locator(xmajorLocator)
