@@ -30,10 +30,15 @@ def adcmodel(N = 8192, fs = 48000, FS = 2.5,
     #np.clip(sinout, 0, FS/2)
 
     ### Noise ###
+    # White Noise
+    if DR is not None:
+        sinout += util.wgn_dr(FS, DR, N)
+        
     # Quantization Noise
     if adc_bits is not None:
-        lsb = FS / 2 ** adc_bits
+        lsb = FS / (2 ** adc_bits)
         sinout = np.round(sinout / lsb) * lsb
+    
 
     sinout -= np.mean(sinout)
 

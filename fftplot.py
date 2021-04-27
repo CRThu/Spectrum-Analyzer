@@ -23,15 +23,17 @@ def fftplot(signal, fs, fbase,
     Nomalized = 'dBFS', FS = -1,
     Window = 'HFT248D',
     PlotT = True, PlotSA = True, PlotSP = True,
-    HDx_max = 9):
+    HDx_max = 9,
+    dBm_Z = 600):
     
     #TODO Fix Bugs in Vrms
     assert Nomalized == 'dBFS'
+    assert Nomalized != 'dBm'
     assert Nomalized != 'Vrms'
     #TODO Recalc Window CPG
     assert Window != 'Raw'
     assert Window != 'rectangle'
-    assert Window != 'blackmanharris'
+    #assert Window != 'blackmanharris'
     assert Window != 'flattop'
     #TODO calc fbase when not given
 
@@ -57,14 +59,17 @@ def fftplot(signal, fs, fbase,
     # | fft_spur_freq   | Peak spurious frequency       | 1                 |
     # | fft_spur_amp    | Peak spurious Noise amplitude | 1                 |
     # | fft_spur_dbfs   | Peak spurious Noise dBFS      | 1                 |
+    # | fft_mod_noise   | Noise Amplitude               | int(N / 2) + 1    |
 
     ### FFT ###
     signal_k = np.arange(N)
 
     # Window
+    #winN = wd.blackmanharris(N)
     if fftwin.has_window(Window):
         winN = fftwin.get_window(Window, N)
     
+
     signal_win = winN * signal
     # FFT
     signal_fft = fft(signal_win)
@@ -82,14 +87,14 @@ def fftplot(signal, fs, fbase,
 
     # dBFS Calc
     fft_mod_dbfs = np.zeros(half_N)
-    if Nomalized == 'dBFS':
-        assert FS > 0
-        # Nomalized : FS
-        fft_mod_dbfs[0] = fft_mod[0] / FS
-        fft_mod_dbfs[range(1,half_N)] = fft_mod[range(1,half_N)] * 2 / FS
-        # Nomalized : dB
-        fft_mod_dbfs = util.vratio2db_np(fft_mod_dbfs)
+    assert FS > 0
+    # Nomalized : FS
+    fft_mod_dbfs[0] = fft_mod[0] / FS
+    fft_mod_dbfs[range(1,half_N)] = fft_mod[range(1,half_N)] * 2 / FS
+    # Nomalized : dB
+    fft_mod_dbfs = util.vratio2db_np(fft_mod_dbfs)
 
+    
     ### ANALYSIS ###
     # Harmonic distortion
     # fbase hd2 hd3 ... hdx  bins & freqs & powers
@@ -108,8 +113,7 @@ def fftplot(signal, fs, fbase,
     # Spurious
     # Peak Harmonic or Spurious Noise
     # Calc peak power except [DC : DC + L], [Signal - L : Signal + L]
-    # TODO replace signal_bin
-    signal_bin = round(fbase * (0 + 1) / fs * N)
+    signal_bin = fft_hd_bins[0]
     current_window_mainlobe = fftwin.get_window_mainlobe_width(window = Window)
     fft_mod_spur = np.copy(fft_mod)
     fft_mod_spur[0 : 0 + current_window_mainlobe + 1] = 0
@@ -119,6 +123,24 @@ def fftplot(signal, fs, fbase,
     fft_spur_amps = fft_mod[fft_spur_bin]
     fft_spur_dbfs = fft_mod_dbfs[fft_spur_bin]
 
+    # Noise
+    # Calc peak power except [DC : DC + L], [Signal - L : Signal + L], [HDx - L : HDx + L]
+    # Voltage to Power
+    # TODO maybe bug here
+    fft_mod_noise = np.copy(fft_mod)
+    fft_mod_noise[0 : 0 + current_window_mainlobe + 1] = 0
+    for i in range(HDx_max):
+        fft_mod_noise[fft_hd_bins[i] - current_window_mainlobe : fft_hd_bins[i] + current_window_mainlobe + 1] = 0
+    fft_mod_noise_inband = fft_mod_noise[:]
+    fft_noise_inband_amp = np.linalg.norm(fft_mod_noise_inband)
+    fft_noise_inband_amp /= fftwin.get_window_ENBW(Window) ** 0.5
+    
+    fft_noise_inband_power = util.amp2dbm(fft_noise_inband_amp, Z = dBm_Z)
+    fft_noise_inband_vrms = util.amp2vrms(fft_noise_inband_amp)
+
+    fft_signal_vrms = util.amp2vrms(fft_hd_amps[0])
+    fft_signal_power = util.amp2dbm(fft_hd_amps[0], Z = dBm_Z)
+    
     ### GUI ###
     # GUI Config
     mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei']
@@ -151,15 +173,14 @@ def fftplot(signal, fs, fbase,
         plt.grid(True, which = 'both')
         #plt.xscale('log')
         plt.xscale('symlog', linthresh = 10000)
-        plt.plot(fft_freq, fft_mod_dbfs, linewidth = 1, marker = '.', markersize = 3)
-        #plt.plot(fft_freq, fft_mod_dbfs, linewidth = 1, alpha = 0.9, zorder = 100)
+        #plt.plot(fft_freq, fft_mod_dbfs, linewidth = 1, marker = '.', markersize = 3)
+        plt.plot(fft_freq, fft_mod_dbfs, linewidth = 1, alpha = 0.9, zorder = 100)
         if Nomalized == 'dBFS':
             _, dBFS_top = plt.ylim()
             if dBFS_top < 0:
                 plt.ylim(top = 1)
         
         # Marker
-        # TODO same point of hdx and spur
         # HDx
         colors = np.random.rand(HDx_max)
         plt.scatter(fft_hd_freqs, fft_hd_dbfs, s = 100, c = colors, alpha = 1, marker = 'x', zorder = 101)
@@ -167,7 +188,8 @@ def fftplot(signal, fs, fbase,
         # Spur
         colors = np.random.rand(1)
         plt.scatter(fft_spur_freq, fft_spur_dbfs, s = 100, c = colors, alpha = 1, marker = '+', zorder = 103)
-
+        
+    
     if PlotSP == True:
         # Phase Spectrum Plot
         plt.figure('Phase Spectrum', figsize = (8, 5))
@@ -183,16 +205,22 @@ def fftplot(signal, fs, fbase,
         ymajorFormatter = FormatStrFormatter('%5.2f π')
         plt.gca().yaxis.set_major_locator(ymajorLocator)
         plt.gca().yaxis.set_major_formatter(ymajorFormatter)
-
+    
     ### REPORT ###
+    # TODO Convert Range
     # Report
-    print('| ---- | ------------- | --------------- |')
+    print('| ---- | --------------- | --------------- |')
     # HDx
     for i in range(HDx_max):
-        print('| %s | %10.3f Hz | %10.3f %s |'%('BASE' if i == 0 else 'HD%2d'%(i + 1),fft_hd_freqs[i], fft_hd_dbfs[i], Nomalized ))
-    print('| ---- | ------------- | --------------- |')
-    print('| %s | %10.3f Hz | %10.3f %s |'%('SPUR',fft_spur_freq, fft_spur_dbfs, Nomalized ))
-    print('| ---- | ------------- | --------------- |')
+        print('| %s | %12.3f Hz | %10.3f %s |' % ('BASE' if i == 0 else 'HD%2d' % (i + 1), fft_hd_freqs[i], fft_hd_dbfs[i], Nomalized ))
+    print('| ---- | --------------- | --------------- |')
+    print('| %s | %12.3f Hz | %10.3f %s |' % ('SPUR',fft_spur_freq, fft_spur_dbfs, Nomalized ))
+    print('| ---- | --------------- | --------------- |')
+
+    print('| Ps   | %10.3f Vrms | %11.3f dBm |' % (fft_signal_vrms, fft_signal_power))
+    print('| Pn   | %10.3f Vrms | %11.3f dBm |' % (fft_noise_inband_vrms, fft_noise_inband_power))
+    print('| ---- | --------------- | --------------- |')
+    
 
     plt.show()
 
@@ -205,14 +233,15 @@ if __name__ == '__main__':
     FS_Vrms = FS / 2 / math.sqrt(2)
     Wave = 'sine'
     Wave_offset = 0
-    #Wave_freq = 1001.22
-    Wave_freq = 1000.105
+    Wave_freq = 1001.22
+    #Wave_freq = 1000.105
     #Wave_freq = 1000.11
 
     adcout = adcmodel.adcmodel(N = N, fs = fs, FS = FS, 
         Wave = Wave, Wave_freq = Wave_freq, Wave_offset = Wave_offset,
-        adc_bits = 24)
+        adc_bits = None, DR = 100)
     
+
     # Time
     #fftplot(signal = adcout, fs = fs, Zoom = 'Part', Zoom_fin = min(Wave_freq) * 0.995, Nomalized = 'dBFS', FS = FS)
     #fftplot(signal = adcout, fs = fs, Wave = 'Windowed', Nomalized = 'dBFS', FS = FS)

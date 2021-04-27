@@ -4,8 +4,9 @@ from scipy.fftpack import fft,fftshift
 import matplotlib.pyplot as plt
 import fftwin
 
+window = signal.windows.blackmanharris(1048576)
 #window = signal.windows.kaiser(51, beta=100)
-window = fftwin.get_windows('HFT90D', 1048576)
+#window = fftwin.get_windows('HFT90D', 1048576)
 plt.plot(window)
 plt.title(r"window")
 plt.ylabel("Amplitude")

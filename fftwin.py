@@ -6,23 +6,30 @@ from scipy import signal as wd
 # CPG (Ratio)
 # Mainlobe width of one side (Bins)
 # All Mainlobe width : (winMainobeWidth * 2 + 1)
-# NENBW (Bins)
+# ENBW (Bins)
+# Window Reference: https://holometer.fnal.gov/GH_FFT.pdf
+
 winCoef = {
+    'blackmanharris' : {
+        'weight' : [0.35875, 0.48829, 0.14128, 0.01168],
+        'CPG' : 2.787,
+        'mainlobe' : None,
+        'ENBW' : None,},
     'HFT90D' : {
         'weight' : [1, 1.942604, 1.340318, 0.440811, 0.043097],
         'CPG' : 1.000,
         'mainlobe' : 5,
-        'NENBW' : 3.8832,},
+        'ENBW' : 3.8832,},
     'HFT144D' : {
         'weight' : [1, 1.96760033, 1.57983607, 0.81123644, 0.22583558, 0.02773848, 0.00090360],
         'CPG' : 1.000,
         'mainlobe' : 7,
-        'NENBW' : 4.5386,},
+        'ENBW' : 4.5386,},
     'HFT248D' : {
         'weight' : [1, 1.985844164102, 1.791176438506, 1.282075284005, 0.667777530266, 0.240160796576, 0.056656381764, 0.008134974479, 0.000624544650, 0.000019808998, 0.000000132974],
         'CPG' : 1.000,
         'mainlobe' : 11,
-        'NENBW' : 5.6512,},
+        'ENBW' : 5.6512,},
 }
 
 # Generate Window with CPG Correction
@@ -45,7 +52,9 @@ def has_window(window):
     return window in winCoef
 
 def get_window_mainlobe_width(window):
-    return winCoef[window]['mainlobe']
+    if has_window(window):
+        return winCoef[window]['mainlobe']
 
-def get_window_NENBW(window):
-    return winCoef[window]['NENBW']
+def get_window_ENBW(window):
+    if has_window(window):
+        return winCoef[window]['ENBW']
