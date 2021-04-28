@@ -1,13 +1,15 @@
-import numpy as np
-from scipy.fftpack import fft, ifft
-import matplotlib.pyplot as plt
-from matplotlib.pylab import mpl
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-from scipy import signal as wd
 import math
-import fftwin
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.pylab import mpl
+from matplotlib.ticker import FormatStrFormatter, MultipleLocator
+from scipy import signal as wd
+from scipy.fftpack import fft, ifft
+
 import adcmodel
 import analysis_util as util
+import fftwin
 
 info = {
     'name': 'FFT ANALYSIS PROGRAM',
@@ -127,12 +129,13 @@ def fftplot(signal, fs, fbase,
                  current_window_mainlobe + 1] = 0
     fft_spur_bin = np.argmax(fft_mod_spur)
     fft_spur_freq = fft_freq[fft_spur_bin]
-    fft_spur_amps = fft_mod[fft_spur_bin]
+    fft_spur_amp = fft_mod[fft_spur_bin]
     fft_spur_dbfs = fft_mod_dbfs[fft_spur_bin]
 
     # Noise
     # Calc peak power except [DC : DC + L], [Signal - L : Signal + L], [HDx - L : HDx + L]
     # Voltage to Power
+    # TODO add noise in masked bin
     fft_mod_noise = np.copy(fft_mod)
     fft_mod_noise[0: 0 + current_window_mainlobe + 1] = 0
     for i in range(HDx_max):
@@ -140,21 +143,30 @@ def fftplot(signal, fs, fbase,
                       fft_hd_bins[i] + current_window_mainlobe + 1] = 0
     fft_mod_noise_inband = fft_mod_noise[:]
     fft_noise_inband_amp = np.linalg.norm(fft_mod_noise_inband)
+    # Pn_true = Pn - ENBW
     fft_noise_inband_amp /= fftwin.get_window_ENBW(Window) ** 0.5
 
     # Power
     # Signal
-    fft_signal_vrms = util.amp2vrms(fft_hd_amps[0])
-    fft_signal_power = util.amp2dbm(fft_hd_amps[0], Z=dBm_Z)
+    fft_signal_vrms = util.vamp2vrms(fft_hd_amps[0])
+    fft_signal_power = util.vamp2dbm(fft_hd_amps[0], Z=dBm_Z)
 
     # Harmonic
     fft_harmonic_amps = np.linalg.norm(fft_hd_amps[1:])
-    fft_harmonic_vrms = util.amp2vrms(fft_harmonic_amps)
-    fft_harmonic_power = util.amp2dbm(fft_harmonic_amps, Z=dBm_Z)
+    fft_harmonic_vrms = util.vamp2vrms(fft_harmonic_amps)
+    fft_harmonic_power = util.vamp2dbm(fft_harmonic_amps, Z=dBm_Z)
 
     # Noise
-    fft_noise_inband_vrms = util.amp2vrms(fft_noise_inband_amp)
-    fft_noise_inband_power = util.amp2dbm(fft_noise_inband_amp, Z=dBm_Z)
+    fft_noise_inband_vrms = util.vamp2vrms(fft_noise_inband_amp)
+    fft_noise_inband_power = util.vamp2dbm(fft_noise_inband_amp, Z=dBm_Z)
+
+    # Performance
+    perf_dic = util.perf_calc(
+        FS=FS,
+        vs=fft_hd_amps[0],
+        vd=fft_harmonic_amps,
+        vn=fft_noise_inband_amp,
+        vspur=fft_spur_amp)
 
     ### GUI ###
     # GUI Config
@@ -175,7 +187,7 @@ def fftplot(signal, fs, fbase,
                 plt.plot(signal_k, signal, linewidth=1)
             elif Wave == 'Windowed':
                 plt.plot(signal_k, signal_win,
-                         linewidth=1,  marker='.', markersize=3)
+                         linewidth=1, marker='.', markersize=3)
         elif Zoom == 'Part':
             assert Zoom_fin > 0
             plt.plot(signal_k[range(round(fs / Zoom_fin * Zoom_period))],
@@ -202,7 +214,7 @@ def fftplot(signal, fs, fbase,
         # HDx
         colors = np.random.rand(HDx_max)
         plt.scatter(fft_hd_freqs, fft_hd_dbfs,
-                    s=100,  c=colors, alpha=1, marker='x', zorder=101)
+                    s=100, c=colors, alpha=1, marker='x', zorder=101)
         plt.text(fft_hd_freqs[0], fft_hd_dbfs[0], '%.3f Hz, %.3f %s'
                  % (fft_hd_freqs[0], fft_hd_dbfs[0], Nomalized), zorder=102)
         # Spur
@@ -227,28 +239,42 @@ def fftplot(signal, fs, fbase,
         plt.gca().yaxis.set_major_formatter(ymajorFormatter)
 
     ### REPORT ###
-    # TODO Convert Range
     # Report
-    print('| ---- | --------------- | --------------- |')
+    print('| ------ | --------------- | --------------- |')
     # HDx
     for i in range(HDx_max):
-        print('| %s | %12.3f Hz | %10.3f %s |'
+        print('| %-6s | %12.3f Hz | %10.3f %s |'
               % ('BASE' if i == 0 else 'HD%2d' % (i + 1),
                   fft_hd_freqs[i], fft_hd_dbfs[i], Nomalized))
-    print('| ---- | --------------- | --------------- |')
-    print('| %s | %12.3f Hz | %10.3f %s |'
+    print('| ------ | --------------- | --------------- |')
+
+    # Spurious
+    print('| %-6s | %12.3f Hz | %10.3f %s |'
           % ('SPUR', fft_spur_freq, fft_spur_dbfs, Nomalized))
-    print('| ---- | --------------- | --------------- |')
+    print('| ------ | --------------- | --------------- |')
 
-    print('| Ps   | %10.3f Vrms | %11.3f dBm |'
-          % (fft_signal_vrms, fft_signal_power))
-    print('| Ph   | %10.3f Vrms | %11.3f dBm |'
-          % (fft_harmonic_vrms, fft_harmonic_power))
-    print('| Pn   | %10.3f Vrms | %11.3f dBm |'
-          % (fft_noise_inband_vrms, fft_noise_inband_power))
-    print('| ---- | --------------- | --------------- |')
+    # Power
+    print('| %-6s | %9.3f %s | %11.3f dBm |'
+          % (('Ps',)
+             + util.range_format(fft_signal_vrms, 'Vrms')
+             + (fft_signal_power,)))
+    print('| %-6s | %9.3f %s | %11.3f dBm |'
+          % (('Ph',)
+             + util.range_format(fft_harmonic_vrms, 'Vrms')
+             + (fft_harmonic_power,)))
+    print('| %-6s | %9.3f %s | %11.3f dBm |'
+          % (('Pn',)
+             + util.range_format(fft_noise_inband_vrms, 'Vrms')
+             + (fft_noise_inband_power,)))
+    print('| ------ | --------------- | --------------- |')
 
-    plt.show()
+    # Perforance
+    for key, value in perf_dic.items():
+        print('| %-6s | %9.3f %5s |' % ((key,) + value))
+    print('| ------ | --------------- |')
+
+    if PlotT or PlotSA or PlotSP:
+        plt.show()
 
 
 if __name__ == '__main__':
@@ -265,7 +291,7 @@ if __name__ == '__main__':
     #Wave_freq = 1000.11
 
     adcout = adcmodel.adcmodel(N=N, fs=fs, FS=FS,
-                               Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset,
+                               Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=0.7746, HDx=[-95, -90, -100],
                                adc_bits=None, DR=100)
 
     # Time
