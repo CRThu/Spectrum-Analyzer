@@ -1,4 +1,5 @@
 import math
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +15,7 @@ import fftwin
 info = {
     'name': 'FFT ANALYSIS PROGRAM',
     'project': '202116A',
-    'version': '0.0.1',
+    'version': '0.7',
     'release': 'alpha',
     'author': 'written by carrot',
 }
@@ -22,8 +23,8 @@ info = {
 
 def fftplot(signal, fs, fbase,
             Wave='Raw',
-            Zoom='All', Zoom_fin=-1, Zoom_period=3,
-            Nomalized='dBFS', FS=-1,
+            Zoom='All', Zoom_fin=None, Zoom_period=3,
+            Nomalized='dBFS', FS=None,
             Window='HFT248D',
             PlotT=True, PlotSA=True, PlotSP=True,
             HDx_max=9,
@@ -69,6 +70,7 @@ def fftplot(signal, fs, fbase,
     # | fft_noise_inband_power  | Noise Power in band           | 1                 |
     # | fft_signal_vrms         | Signal Vrms in band           | 1                 |
     # | fft_signal_power        | Signal Power in band          | 1                 |
+    # | perf_dict               | Performance Dictionary        | ~8                |
 
     ### FFT ###
     signal_k = np.arange(N)
@@ -135,12 +137,21 @@ def fftplot(signal, fs, fbase,
     # Noise
     # Calc peak power except [DC : DC + L], [Signal - L : Signal + L], [HDx - L : HDx + L]
     # Voltage to Power
-    # TODO add noise in masked bin
+    # TODO Noise in band
+    # TODO Supr expected
     fft_mod_noise = np.copy(fft_mod)
+    # Mask
     fft_mod_noise[0: 0 + current_window_mainlobe + 1] = 0
     for i in range(HDx_max):
         fft_mod_noise[fft_hd_bins[i] - current_window_mainlobe:
                       fft_hd_bins[i] + current_window_mainlobe + 1] = 0
+    # Noise Correction for mask
+    fft_mod_noise_mid = np.median(fft_mod_noise)
+    fft_mod_noise[0: 0 + current_window_mainlobe + 1] = fft_mod_noise_mid
+    for i in range(HDx_max):
+        fft_mod_noise[fft_hd_bins[i] - current_window_mainlobe:
+                      fft_hd_bins[i] + current_window_mainlobe + 1] = fft_mod_noise_mid
+
     fft_mod_noise_inband = fft_mod_noise[:]
     fft_noise_inband_amp = np.linalg.norm(fft_mod_noise_inband)
     # Pn_true = Pn - ENBW
@@ -161,7 +172,7 @@ def fftplot(signal, fs, fbase,
     fft_noise_inband_power = util.vamp2dbm(fft_noise_inband_amp, Z=dBm_Z)
 
     # Performance
-    perf_dic = util.perf_calc(
+    perf_dict = util.perf_calc(
         FS=FS,
         vs=fft_hd_amps[0],
         vd=fft_harmonic_amps,
@@ -269,29 +280,38 @@ def fftplot(signal, fs, fbase,
     print('| ------ | --------------- | --------------- |')
 
     # Perforance
-    for key, value in perf_dic.items():
+    for key, value in perf_dict.items():
         print('| %-6s | %9.3f %5s |' % ((key,) + value))
     print('| ------ | --------------- |')
 
     if PlotT or PlotSA or PlotSP:
-        plt.show()
+        plt.show(block=False)
+        # TODO exit
+        input("Press [enter] to continue.")
+        # while True:
+        #     if len(plt.get_fignums())==0:
+        #         break
+        #     else:
+        #         plt.pause(0.25)
+        plt.close('all')
 
 
 if __name__ == '__main__':
 
     # Sample Info
-    N = 262144
+    N = 16384
     fs = 193986.56
     FS = 2.5
     FS_Vrms = FS / 2 / math.sqrt(2)
     Wave = 'sine'
     Wave_offset = 0
-    Wave_freq = 1001.22
+    #Wave_freq = 1001.22
     #Wave_freq = 1000.105
-    #Wave_freq = 1000.11
+    Wave_freq = 1000.11
 
     adcout = adcmodel.adcmodel(N=N, fs=fs, FS=FS,
-                               Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=0.7746, HDx=[-95, -90, -100],
+                               HDx=[-95, -90, -100],
+                               Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=0.776,
                                adc_bits=None, DR=100)
 
     # Time
@@ -309,4 +329,5 @@ if __name__ == '__main__':
     #fftplot(signal = adcout, fs = fs, fbase = Wave_freq, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D')
     #fftplot(signal = adcout, fs = fs, fbase = Wave_freq, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
     fftplot(signal=adcout, fs=fs, fbase=Wave_freq, Nomalized='dBFS', FS=FS, Window='HFT248D',
-            Zoom='Part', Zoom_fin=Wave_freq, PlotT=False, PlotSA=True, PlotSP=False)
+            Zoom='Part', Zoom_fin=Wave_freq,
+            PlotT=False, PlotSA=True, PlotSP=False)
