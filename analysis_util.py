@@ -143,41 +143,136 @@ def perf_calc(FS, vs, vd, vn, vspur):
 
     return perf_dic
 
+# Generate mask for nparray
+# mask_bins is tuple. such as ((0,10),(20,50))
+def mask_bins_gen(center_bins, mainlobe, arr_len):
+    index_max = arr_len - 1
+    mask_bins = ()
+    for center_bin in center_bins:
+        center_bin_min = center_bin - mainlobe
+        center_bin_max = center_bin + mainlobe
+        if center_bin_min < 0:
+            center_bin_min = 0
+        elif center_bin_min > index_max:
+            center_bin_min = index_max
+        if center_bin_max < 0:
+            center_bin_max = 0
+        elif center_bin_max > index_max:
+            center_bin_max = index_max
+        mask_bins += ((center_bin_min, center_bin_max),)
+    return mask_bins
+
+# Add mask for nparray
+# mask_bins is tuple. such as ((0,10),(20,50))
+def mask_array(arr_in, mask_bins, fill=0):
+    arr = np.array(arr_in).copy()
+    for mask_bin in mask_bins:
+        if mask_bin[0] < 0 or mask_bin[0] > len(arr) - 1 \
+                or mask_bin[1] < 0 or mask_bin[1] > len(arr) - 1 \
+                or mask_bin[0] > mask_bin[1]:
+            raise IndexError('mask = [%d, %d] out of range: [%d, %d]' % (
+                mask_bin[0], mask_bin[1], 0, len(arr) - 1))
+        else:
+            arr[mask_bin[0]:mask_bin[1] + 1] = fill
+    return arr
+
+# Guess Signal Freq
+# fft_mod is nparray
+# mask_bins is tuple. such as ((0,10),(20,50))
+# if prob_bin is not none, find bins around prob_bin first
+# Err = +/- 0.5 Bins
+def guess_fft_signal_bin(fft_mod, mask_bins=(), prob_bin=None, prob_bin_mainlobe=None):
+    fft_mod_mask = mask_array(fft_mod, mask_bins, fill=0)
+    if prob_bin is None:
+        return np.argmax(fft_mod_mask)
+    else:
+        prob_bin_min = prob_bin - prob_bin_mainlobe
+        prob_bin_max = prob_bin + prob_bin_mainlobe
+        index_max = len(fft_mod) - 1
+        if prob_bin_min < 0:
+            prob_bin_min = 0
+        elif prob_bin_min > index_max:
+            prob_bin_min = index_max
+        if prob_bin_max < 0:
+            prob_bin_max = 0
+        elif prob_bin_max > index_max:
+            prob_bin_max = index_max
+        return np.argmax(fft_mod_mask[prob_bin_min:prob_bin_max + 1]) + prob_bin_min
+
+# Guess Distortion Freq
+# Err = +/- 0.5 * HDx Bins
+# TODO fold freq
+def guess_fft_hd_bin(guess_signal_bin, HDx_max):
+    return range(2, HDx_max + 1) * (guess_signal_bin + 1) - 1
+
 
 # Unit Testing
 if __name__ == '__main__':
-    # Hold Range
-    print('Hold Range')
-    print('%10f %s' % (range_format(1.2345678, 'kV')))
-    print('%10f %s' % (range_format(1.2345678, 'V')))
-    print('%10f %s' % (range_format(1.2345678, 'mV')))
-    print('%10f %s' % (range_format(1.2345678, 'uV')))
-    print('%10f %s' % (range_format(1.000002345678, 'nV')))
-    # Lower Range
-    print('Lower Range')
-    print('%10f %s' % (range_format(0.12345678, 'kV')))
-    print('%10f %s' % (range_format(0.0012345678, 'V')))
-    print('%10f %s' % (range_format(0.0000012345678, 'mV')))
-    print('%10f %s' % (range_format(0.00000012345678, 'uV')))
-    # Higher Range
-    print('Higher Range')
-    print('%10f %s' % (range_format(1234.5678, 'kV')))
-    print('%10f %s' % (range_format(12345678, 'V')))
-    print('%10f %s' % (range_format(1234567800, 'mV')))
-    print('%10f %s' % (range_format(1234567800000, 'uV')))
-    # Over Range
-    print('Over Range')
-    print('%10f %s' % (range_format(0.00012345678, 'pV')))
-    print('%10f %s' % (range_format(0.00012345678, 'fV')))
-    print('%10f %s' % (range_format(12345678, 'GV')))
-    print('%10f %s' % (range_format(12345678, 'TV')))
-    # Range String
-    print('Range String')
-    print('%10f %s' % (range_format(1234.5678, 'V')))
-    print('%10f %s' % (range_format(1234.5678, 'W')))
-    print('%10f %s' % (range_format(1234.5678, 'uV')))
-    print('%10f %s' % (range_format(1234.5678, 'uW')))
-    print('%10f %s' % (range_format(1234.5678, 'kHz')))
-    print('%10f %s' % (range_format(1234.5678, 'Hz')))
-    print('%10f %s' % (range_format(1234.5678)))
-    print('%10f %s' % (range_format(0.12345678)))
+    print('analysis_util')
+    test_range_format = False
+    test_mask = False
+    test_guess_fft_signal_bin = True
+
+    if test_range_format == True:
+        # Hold Range
+        print('Hold Range')
+        print('%10f %s' % (range_format(1.2345678, 'kV')))
+        print('%10f %s' % (range_format(1.2345678, 'V')))
+        print('%10f %s' % (range_format(1.2345678, 'mV')))
+        print('%10f %s' % (range_format(1.2345678, 'uV')))
+        print('%10f %s' % (range_format(1.000002345678, 'nV')))
+        # Lower Range
+        print('Lower Range')
+        print('%10f %s' % (range_format(0.12345678, 'kV')))
+        print('%10f %s' % (range_format(0.0012345678, 'V')))
+        print('%10f %s' % (range_format(0.0000012345678, 'mV')))
+        print('%10f %s' % (range_format(0.00000012345678, 'uV')))
+        # Higher Range
+        print('Higher Range')
+        print('%10f %s' % (range_format(1234.5678, 'kV')))
+        print('%10f %s' % (range_format(12345678, 'V')))
+        print('%10f %s' % (range_format(1234567800, 'mV')))
+        print('%10f %s' % (range_format(1234567800000, 'uV')))
+        # Over Range
+        print('Over Range')
+        print('%10f %s' % (range_format(0.00012345678, 'pV')))
+        print('%10f %s' % (range_format(0.00012345678, 'fV')))
+        print('%10f %s' % (range_format(12345678, 'GV')))
+        print('%10f %s' % (range_format(12345678, 'TV')))
+        # Range String
+        print('Range String')
+        print('%10f %s' % (range_format(1234.5678, 'V')))
+        print('%10f %s' % (range_format(1234.5678, 'W')))
+        print('%10f %s' % (range_format(1234.5678, 'uV')))
+        print('%10f %s' % (range_format(1234.5678, 'uW')))
+        print('%10f %s' % (range_format(1234.5678, 'kHz')))
+        print('%10f %s' % (range_format(1234.5678, 'Hz')))
+        print('%10f %s' % (range_format(1234.5678)))
+        print('%10f %s' % (range_format(0.12345678)))
+
+    if test_mask == True:
+        testT = ((0, 2), (5, 5), (10, 13))
+        for r in testT:
+            print('{%d,%d}' % (r[0], r[1]))
+
+        testL = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+
+        print(testL)
+        testL2 = mask_array(testL, testT, 99)
+
+        print(testL)
+        print(testL2)
+
+        print(mask_bins_gen([0, 4, 12], 3, len(testL)))
+
+        gen = mask_bins_gen([0, 4, 12], 2, len(testL))
+        testL3 = mask_array(testL, gen, 0)
+        print(testL3)
+
+    if test_guess_fft_signal_bin == True:
+        testL = [0, 1, 22, 5, 2, 1, 15, 19, 17, 18, 17, 15, 17, 15, 8, 0]
+        print('argmax =', guess_fft_signal_bin(testL, mask_bins=()))
+        print('argmax(without 0:2) =', guess_fft_signal_bin(
+            testL, mask_bins=((0, 2),)))
+        print('argmax(around 13) =', guess_fft_signal_bin(
+            testL, prob_bin=15, prob_bin_mainlobe=7))

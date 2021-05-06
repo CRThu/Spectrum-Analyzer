@@ -15,13 +15,13 @@ import fftwin
 info = {
     'name': 'FFT ANALYSIS PROGRAM',
     'project': '202116A',
-    'version': '0.7',
-    'release': 'alpha',
+    'version': '1.0',
+    'release': 'beta',
     'author': 'written by carrot',
 }
 
 
-def fftplot(signal, fs, fbase,
+def fftplot(signal, fs,
             Wave='Raw',
             Zoom='All', Zoom_fin=None, Zoom_period=3,
             Nomalized='dBFS', FS=None,
@@ -39,7 +39,6 @@ def fftplot(signal, fs, fbase,
     assert Window != 'rectangle'
     #assert Window != 'blackmanharris'
     assert Window != 'flattop'
-    # TODO calc fbase when not given
 
     N = len(signal)
     half_N = int(N / 2) + 1
@@ -52,24 +51,39 @@ def fftplot(signal, fs, fbase,
     # | signal_fft              | signal in, Spectrum domain    | int(N / 2) + 1    |
     # | fft_freq                | frequency, Spectrum domain    | int(N / 2) + 1    |
     # | fft_mod                 | Amplitude, Spectrum domain    | int(N / 2) + 1    |
-    # | fft_mod_dbfs            | dBFS, Spectrum domain         | int(N / 2) + 1    |
     # | fft_phase               | Phase, Spectrum domain        | int(N / 2) + 1    |
-    # | fft_hd_bins             | Harmonic Bins                 | X, base + HD2-X   |
-    # | fft_hd_freqs            | Harmonic frequency            | X, base + HD2-X   |
-    # | fft_hd_amps             | Harmonic distortion amplitude | X, base + HD2-X   |
-    # | fft_hd_dbfs             | Harmonic distortion dBFS      | X, base + HD2-X   |
+    # | fft_mod_dbfs            | dBFS, Spectrum domain         | int(N / 2) + 1    |
+    # | fft_mod_len             | length of fft_mod             | 1                 |
+    # | current_window_mainlobe | current window mainlobe       | 1                 |
+    # | mask_bins_dc            | mask bins tuple, dc           | tuple             |
+    # | mask_bins_signal        | mask bins tuple, signal       | tuple             |
+    # | mask_bins_hd            | mask bins tuple, distortion   | tuple             |
+    # | guess_signal_bin        | signal bin position           | 1                 |
+    # | guess_hd_bins           | distortion bins positions     | X - 1, HD2-X      |
+    # | fft_signal_bin          | Peak signal Bins              | 1                 |
+    # | fft_signal_freq         | Peak signal frequency         | 1                 |
+    # | fft_signal_amp          | Peak signal Noise amplitude   | 1                 |
+    # | fft_signal_dbfs         | Peak signal Noise dBFS        | 1                 |
+    # | fft_hd_bins             | Harmonic Bins                 | X - 1, HD2-X      |
+    # | fft_hd_freqs            | Harmonic frequency            | X - 1, HD2-X      |
+    # | fft_hd_amps             | Harmonic distortion amplitude | X - 1, HD2-X      |
+    # | fft_hd_dbfs             | Harmonic distortion dBFS      | X - 1, HD2-X      |
     # | fft_mod_spur            | Spurious Amplitude            | int(N / 2) + 1    |
     # | fft_spur_bin            | Peak spurious Bins            | 1                 |
     # | fft_spur_freq           | Peak spurious frequency       | 1                 |
     # | fft_spur_amp            | Peak spurious Noise amplitude | 1                 |
     # | fft_spur_dbfs           | Peak spurious Noise dBFS      | 1                 |
     # | fft_mod_noise           | Noise Spectrum                | int(N / 2) + 1    |
+    # | fft_mod_noise_mid       | Noise Median for correction   | 1                 |
     # | fft_mod_noise_inband    | Noise Spectrum in band        | BW / fres         |
     # | fft_noise_inband_amp    | Noise Amplitude in band       | 1                 |
-    # | fft_noise_inband_vrms   | Noise Vrms in band            | 1                 |
-    # | fft_noise_inband_power  | Noise Power in band           | 1                 |
     # | fft_signal_vrms         | Signal Vrms in band           | 1                 |
     # | fft_signal_power        | Signal Power in band          | 1                 |
+    # | fft_thd_amp             | Distortion amplitude          | 1                 |
+    # | fft_thd_vrms            | Distortion Vrms in band       | 1                 |
+    # | fft_thd_power           | Distortion Power in band      | 1                 |
+    # | fft_noise_inband_vrms   | Noise Vrms in band            | 1                 |
+    # | fft_noise_inband_power  | Noise Power in band           | 1                 |
     # | perf_dict               | Performance Dictionary        | ~8                |
 
     ### FFT ###
@@ -105,30 +119,39 @@ def fftplot(signal, fs, fbase,
     fft_mod_dbfs = util.vratio2db_np(fft_mod_dbfs)
 
     ### ANALYSIS ###
+    # Generate Mask bins
+    fft_mod_len = len(fft_mod)
+    current_window_mainlobe = fftwin.get_window_mainlobe_width(window=Window)
+    # mask_bins_dc : [DC : DC + L]
+    mask_bins_dc = util.mask_bins_gen(
+        [0], current_window_mainlobe, fft_mod_len)
+    # Guess signal bin
+    guess_signal_bin = util.guess_fft_signal_bin(fft_mod, mask_bins_dc)
+    guess_hd_bins = util.guess_fft_hd_bin(guess_signal_bin, HDx_max)
+    # mask_bins_signal : [Signal - L : Signal + L]
+    mask_bins_signal = util.mask_bins_gen(
+        [guess_signal_bin], current_window_mainlobe, fft_mod_len)
+    # mask_bins_hd : [HDx - L : HDx + L]
+    mask_bins_hd = util.mask_bins_gen(
+        guess_hd_bins, current_window_mainlobe, fft_mod_len)
+
+    # Signal
+    fft_signal_bin = guess_signal_bin
+    fft_signal_freq = fft_freq[guess_signal_bin]
+    fft_signal_amp = fft_mod[guess_signal_bin]
+    fft_signal_dbfs = fft_mod_dbfs[guess_signal_bin]
+
     # Harmonic distortion
-    # fbase hd2 hd3 ... hdx  bins & freqs & powers
-    # TODO del fbase in hdx
-    # TODO fold freq
-    fft_hd_bins = np.zeros(HDx_max, dtype=int)
-    fft_hd_freqs = np.zeros(HDx_max)
-    fft_hd_amps = np.zeros(HDx_max)
-    fft_hd_dbfs = np.zeros(HDx_max)
-    for i in range(HDx_max):
-        fbase_index = round(fbase * (i + 1) / fs * N)
-        fft_hd_bins[i] = fbase_index
-        fft_hd_freqs[i] = fft_freq[fbase_index]
-        fft_hd_amps[i] = fft_mod[fbase_index]
-        fft_hd_dbfs[i] = fft_mod_dbfs[fbase_index]
+    # hd2 hd3 ... hdx  bins & freqs & powers
+    fft_hd_bins = guess_hd_bins
+    fft_hd_freqs = [fft_freq[x] for x in fft_hd_bins]
+    fft_hd_amps = [fft_mod[x] for x in fft_hd_bins]
+    fft_hd_dbfs = [fft_mod_dbfs[x] for x in fft_hd_bins]
 
     # Spurious
-    # Peak Harmonic or Spurious Noise
+    # Peak Harmonic distortion or Spurious Noise
     # Calc peak power except [DC : DC + L], [Signal - L : Signal + L]
-    signal_bin = fft_hd_bins[0]
-    current_window_mainlobe = fftwin.get_window_mainlobe_width(window=Window)
-    fft_mod_spur = np.copy(fft_mod)
-    fft_mod_spur[0: 0 + current_window_mainlobe + 1] = 0
-    fft_mod_spur[signal_bin - current_window_mainlobe:signal_bin +
-                 current_window_mainlobe + 1] = 0
+    fft_mod_spur = util.mask_array(fft_mod, mask_bins_dc + mask_bins_signal)
     fft_spur_bin = np.argmax(fft_mod_spur)
     fft_spur_freq = fft_freq[fft_spur_bin]
     fft_spur_amp = fft_mod[fft_spur_bin]
@@ -136,21 +159,24 @@ def fftplot(signal, fs, fbase,
 
     # Noise
     # Calc peak power except [DC : DC + L], [Signal - L : Signal + L], [HDx - L : HDx + L]
-    # Voltage to Power
     # TODO Noise in band
     # TODO Supr expected
-    fft_mod_noise = np.copy(fft_mod)
-    # Mask
-    fft_mod_noise[0: 0 + current_window_mainlobe + 1] = 0
-    for i in range(HDx_max):
-        fft_mod_noise[fft_hd_bins[i] - current_window_mainlobe:
-                      fft_hd_bins[i] + current_window_mainlobe + 1] = 0
+    fft_mod_noise = util.mask_array(
+        fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd)
+    # fft_mod_noise = np.copy(fft_mod)
+    # # Mask
+    # fft_mod_noise[0: 0 + current_window_mainlobe + 1] = 0
+    # for i in range(HDx_max):
+    #     fft_mod_noise[fft_hd_bins[i] - current_window_mainlobe:
+    #                   fft_hd_bins[i] + current_window_mainlobe + 1] = 0
     # Noise Correction for mask
     fft_mod_noise_mid = np.median(fft_mod_noise)
-    fft_mod_noise[0: 0 + current_window_mainlobe + 1] = fft_mod_noise_mid
-    for i in range(HDx_max):
-        fft_mod_noise[fft_hd_bins[i] - current_window_mainlobe:
-                      fft_hd_bins[i] + current_window_mainlobe + 1] = fft_mod_noise_mid
+    fft_mod_noise = util.mask_array(
+        fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd, fill=fft_mod_noise_mid)
+    # fft_mod_noise[0: 0 + current_window_mainlobe + 1] = fft_mod_noise_mid
+    # for i in range(HDx_max):
+    #     fft_mod_noise[fft_hd_bins[i] - current_window_mainlobe:
+    #                   fft_hd_bins[i] + current_window_mainlobe + 1] = fft_mod_noise_mid
 
     fft_mod_noise_inband = fft_mod_noise[:]
     fft_noise_inband_amp = np.linalg.norm(fft_mod_noise_inband)
@@ -159,13 +185,13 @@ def fftplot(signal, fs, fbase,
 
     # Power
     # Signal
-    fft_signal_vrms = util.vamp2vrms(fft_hd_amps[0])
-    fft_signal_power = util.vamp2dbm(fft_hd_amps[0], Z=dBm_Z)
+    fft_signal_vrms = util.vamp2vrms(fft_signal_amp)
+    fft_signal_power = util.vamp2dbm(fft_signal_amp, Z=dBm_Z)
 
-    # Harmonic
-    fft_harmonic_amps = np.linalg.norm(fft_hd_amps[1:])
-    fft_harmonic_vrms = util.vamp2vrms(fft_harmonic_amps)
-    fft_harmonic_power = util.vamp2dbm(fft_harmonic_amps, Z=dBm_Z)
+    # Total Harmonic Distortion
+    fft_thd_amp = np.linalg.norm(fft_hd_amps)
+    fft_thd_vrms = util.vamp2vrms(fft_thd_amp)
+    fft_thd_power = util.vamp2dbm(fft_thd_amp, Z=dBm_Z)
 
     # Noise
     fft_noise_inband_vrms = util.vamp2vrms(fft_noise_inband_amp)
@@ -174,8 +200,8 @@ def fftplot(signal, fs, fbase,
     # Performance
     perf_dict = util.perf_calc(
         FS=FS,
-        vs=fft_hd_amps[0],
-        vd=fft_harmonic_amps,
+        vs=fft_signal_amp,
+        vd=fft_thd_amp,
         vn=fft_noise_inband_amp,
         vspur=fft_spur_amp)
 
@@ -213,7 +239,7 @@ def fftplot(signal, fs, fbase,
         plt.ylabel(Nomalized)
         plt.grid(True, which='both')
         # plt.xscale('log')
-        plt.xscale('symlog', linthresh=10000)
+        plt.xscale('symlog', linthresh=fs/10)
         #plt.plot(fft_freq, fft_mod_dbfs, linewidth = 1, marker = '.', markersize = 3)
         plt.plot(fft_freq, fft_mod_dbfs, linewidth=1, alpha=0.9, zorder=100)
         if Nomalized == 'dBFS':
@@ -222,12 +248,12 @@ def fftplot(signal, fs, fbase,
                 plt.ylim(top=1)
 
         # Marker
-        # HDx
+        # Signal & HDx
         colors = np.random.rand(HDx_max)
-        plt.scatter(fft_hd_freqs, fft_hd_dbfs,
+        plt.scatter([fft_signal_freq, ] + fft_hd_freqs, [fft_signal_dbfs, ] + fft_hd_dbfs,
                     s=100, c=colors, alpha=1, marker='x', zorder=101)
-        plt.text(fft_hd_freqs[0], fft_hd_dbfs[0], '%.3f Hz, %.3f %s'
-                 % (fft_hd_freqs[0], fft_hd_dbfs[0], Nomalized), zorder=102)
+        plt.text(fft_signal_freq, fft_signal_dbfs, '%.3f Hz, %.3f %s'
+                 % (fft_signal_freq, fft_signal_dbfs, Nomalized), zorder=102)
         # Spur
         colors = np.random.rand(1)
         plt.scatter(fft_spur_freq, fft_spur_dbfs,
@@ -252,10 +278,13 @@ def fftplot(signal, fs, fbase,
     ### REPORT ###
     # Report
     print('| ------ | --------------- | --------------- |')
+    # Base
+    print('| %-6s | %12.3f Hz | %10.3f %s |'
+          % ('BASE', fft_signal_freq, fft_signal_dbfs, Nomalized))
     # HDx
-    for i in range(HDx_max):
+    for i in range(HDx_max - 1):
         print('| %-6s | %12.3f Hz | %10.3f %s |'
-              % ('BASE' if i == 0 else 'HD%2d' % (i + 1),
+              % ('HD%2d' % (i + 2),
                   fft_hd_freqs[i], fft_hd_dbfs[i], Nomalized))
     print('| ------ | --------------- | --------------- |')
 
@@ -271,8 +300,8 @@ def fftplot(signal, fs, fbase,
              + (fft_signal_power,)))
     print('| %-6s | %9.3f %s | %11.3f dBm |'
           % (('Ph',)
-             + util.range_format(fft_harmonic_vrms, 'Vrms')
-             + (fft_harmonic_power,)))
+             + util.range_format(fft_thd_vrms, 'Vrms')
+             + (fft_thd_power,)))
     print('| %-6s | %9.3f %s | %11.3f dBm |'
           % (('Pn',)
              + util.range_format(fft_noise_inband_vrms, 'Vrms')
@@ -326,8 +355,8 @@ if __name__ == '__main__':
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'rectangle')
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'blackmanharris')
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'flattop')
-    #fftplot(signal = adcout, fs = fs, fbase = Wave_freq, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D')
-    #fftplot(signal = adcout, fs = fs, fbase = Wave_freq, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
-    fftplot(signal=adcout, fs=fs, fbase=Wave_freq, Nomalized='dBFS', FS=FS, Window='HFT248D',
+    #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D')
+    #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
+    fftplot(signal=adcout, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
             Zoom='Part', Zoom_fin=Wave_freq,
             PlotT=False, PlotSA=True, PlotSP=False)

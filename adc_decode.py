@@ -48,5 +48,8 @@ def adc_decode(filename, split='', base='hex', encode='offset',
 
 
 if __name__ == '__main__':
-    adc_decode('./TestData_88d69.txt', base='hex',
-               encode='offset', adc_bits=16, FS=10, offset=0)
+    print('analysis_util')
+    adc_data = adc_decode('./TestData_88d69.txt', base='hex',
+                          encode='offset', adc_bits=16, FS=10, offset=0)
+    print('Data length = %d, Range = [%f,%f]' % (
+        len(adc_data), np.min(adc_data), np.max(adc_data)))
