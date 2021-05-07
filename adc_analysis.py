@@ -15,4 +15,6 @@ if __name__ == '__main__':
 
     f.fftplot(signal=adc_sample, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
               Zoom='Part', Zoom_fin=Zoom_fin,
+              HDx_max=5,
               PlotT=True, PlotSA=True, PlotSP=False)
+    

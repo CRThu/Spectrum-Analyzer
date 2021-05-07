@@ -9,12 +9,13 @@ from scipy import signal as wd
 # ENBW (Bins)
 # Window Reference: https://holometer.fnal.gov/GH_FFT.pdf
 
+# TODO Verify blackmanharris mainlobe and enbw
 winCoef = {
     'blackmanharris': {
         'weight': [0.35875, 0.48829, 0.14128, 0.01168],
         'CPG': 2.787,
-        'mainlobe': None,
-        'ENBW': None, },
+        'mainlobe': 5,
+        'ENBW': 3.5, },
     'HFT90D': {
         'weight': [1, 1.942604, 1.340318, 0.440811, 0.043097],
         'CPG': 1.000,
@@ -34,8 +35,6 @@ winCoef = {
         'mainlobe': 11,
         'ENBW': 5.6512, },
 }
-
-# Generate Window with CPG Correction
 
 
 def general_cosine(N, weight, CPG=1.000, sym=True):

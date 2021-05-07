@@ -15,8 +15,8 @@ import fftwin
 info = {
     'name': 'FFT ANALYSIS PROGRAM',
     'project': '202116A',
-    'version': '1.0',
-    'release': 'beta',
+    'version': '1.1',
+    'release': 'alpha',
     'author': 'written by carrot',
 }
 
@@ -95,6 +95,13 @@ def fftplot(signal, fs,
         winN = fftwin.get_window(Window, N)
 
     signal_win = winN * signal
+
+    # TODO ADD zeros
+    # signal_win = np.append(signal_win,np.zeros(100000))
+    # N = len(signal+100000)
+    # half_N = int((N+100000) / 2) + 1
+    # signal_k = np.arange(N+100000)
+
     # FFT
     signal_fft = fft(signal_win)
     signal_fft = signal_fft[range(half_N)]
@@ -163,21 +170,11 @@ def fftplot(signal, fs,
     # TODO Supr expected
     fft_mod_noise = util.mask_array(
         fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd)
-    # fft_mod_noise = np.copy(fft_mod)
-    # # Mask
-    # fft_mod_noise[0: 0 + current_window_mainlobe + 1] = 0
-    # for i in range(HDx_max):
-    #     fft_mod_noise[fft_hd_bins[i] - current_window_mainlobe:
-    #                   fft_hd_bins[i] + current_window_mainlobe + 1] = 0
     # Noise Correction for mask
     fft_mod_noise_mid = np.median(fft_mod_noise)
     fft_mod_noise = util.mask_array(
         fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd, fill=fft_mod_noise_mid)
-    # fft_mod_noise[0: 0 + current_window_mainlobe + 1] = fft_mod_noise_mid
-    # for i in range(HDx_max):
-    #     fft_mod_noise[fft_hd_bins[i] - current_window_mainlobe:
-    #                   fft_hd_bins[i] + current_window_mainlobe + 1] = fft_mod_noise_mid
-
+    
     fft_mod_noise_inband = fft_mod_noise[:]
     fft_noise_inband_amp = np.linalg.norm(fft_mod_noise_inband)
     # Pn_true = Pn - ENBW
