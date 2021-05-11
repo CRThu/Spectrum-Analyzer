@@ -50,7 +50,7 @@ def fftplot(signal, fs,
     # | signal_win              | signal in, Windowed           | N                 |
     # | signal_fft              | signal in, Spectrum domain    | int(N / 2) + 1    |
     # | fft_freq                | frequency, Spectrum domain    | int(N / 2) + 1    |
-    # | fft_mod                 | Amplitude, Spectrum domain    | int(N / 2) + 1    |
+    # | fft_mod                 | Magnitude, Spectrum domain    | int(N / 2) + 1    |
     # | fft_phase               | Phase, Spectrum domain        | int(N / 2) + 1    |
     # | fft_mod_dbfs            | dBFS, Spectrum domain         | int(N / 2) + 1    |
     # | fft_mod_len             | length of fft_mod             | 1                 |
@@ -95,12 +95,6 @@ def fftplot(signal, fs,
         winN = fftwin.get_window(Window, N)
 
     signal_win = winN * signal
-
-    # TODO ADD zeros
-    # signal_win = np.append(signal_win,np.zeros(100000))
-    # N = len(signal+100000)
-    # half_N = int((N+100000) / 2) + 1
-    # signal_k = np.arange(N+100000)
 
     # FFT
     signal_fft = fft(signal_win)
@@ -229,9 +223,9 @@ def fftplot(signal, fs,
                      linewidth=1, marker='.', markersize=3)
 
     if PlotSA == True:
-        # Amplitude Spectrum Plot
-        plt.figure('Amplitude Spectrum', figsize=(8, 5))
-        plt.title('Amplitude Spectrum')
+        # Magnitude Spectrum Plot
+        plt.figure('Magnitude Spectrum', figsize=(8, 5))
+        plt.title('Magnitude Spectrum')
         plt.xlabel('Frequency')
         plt.ylabel(Nomalized)
         plt.grid(True, which='both')
@@ -312,13 +306,7 @@ def fftplot(signal, fs,
 
     if PlotT or PlotSA or PlotSP:
         plt.show(block=False)
-        # TODO exit
         input("Press [enter] to continue.")
-        # while True:
-        #     if len(plt.get_fignums())==0:
-        #         break
-        #     else:
-        #         plt.pause(0.25)
         plt.close('all')
 
 

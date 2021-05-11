@@ -12,6 +12,10 @@ def on_key_event(event,canvas,ax):
     canvas.draw()
     return
 
+def _quit(root):
+    root.quit()
+    root.destroy()
+
 root = tkinter.Tk()
 root.wm_title("Embedding in Tk")
 
@@ -32,7 +36,7 @@ canvas.mpl_connect(
 
 canvas.mpl_connect("key_press_event", key_press_handler)
 
-button = tkinter.Button(master=root, text="Quit", command=root.quit)
+button = tkinter.Button(master=root, text="Quit", command=lambda: _quit(root))
 
 button.pack(side=tkinter.BOTTOM)
 toolbar.pack(side=tkinter.BOTTOM, fill=tkinter.X)
