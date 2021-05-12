@@ -11,11 +11,12 @@ from scipy.fftpack import fft, ifft
 import adcmodel
 import analysis_util as util
 import fftwin
+import czt_zoom
 
 info = {
     'name': 'FFT ANALYSIS PROGRAM',
     'project': '202116A',
-    'version': '1.1',
+    'version': '1.2',
     'release': 'alpha',
     'author': 'written by carrot',
 }
@@ -37,7 +38,6 @@ def fftplot(signal, fs,
     # TODO Recalc Window CPG
     assert Window != 'Raw'
     assert Window != 'rectangle'
-    #assert Window != 'blackmanharris'
     assert Window != 'flattop'
 
     N = len(signal)
@@ -128,6 +128,18 @@ def fftplot(signal, fs,
         [0], current_window_mainlobe, fft_mod_len)
     # Guess signal bin
     guess_signal_bin = util.guess_fft_signal_bin(fft_mod, mask_bins_dc)
+    guess_signal_bin_err_range = (guess_signal_bin - 0.5, guess_signal_bin + 0.5)
+    # Guess exact signal bin
+    # TODO: CALC ERR
+    # TODO: REFLATOR WINDOW
+    # TODO: DRAW TO VERIFY
+    bins_zoomed, czt_zoomed = czt_zoom.czt_zoom(
+        signal * fftwin.get_window('blackmanharris', N), guess_signal_bin_err_range, N, zoom=10)
+    guess_exact_signal_bin = bins_zoomed[np.argmax(abs(czt_zoomed))]
+    print(guess_exact_signal_bin / N * fs)
+    return
+    # Guess harmonic distortion bin
+    # TODO: CALC EXACT HDx FREQ
     guess_hd_bins = util.guess_fft_hd_bin(guess_signal_bin, HDx_max)
     # mask_bins_signal : [Signal - L : Signal + L]
     mask_bins_signal = util.mask_bins_gen(
@@ -168,7 +180,7 @@ def fftplot(signal, fs,
     fft_mod_noise_mid = np.median(fft_mod_noise)
     fft_mod_noise = util.mask_array(
         fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd, fill=fft_mod_noise_mid)
-    
+
     fft_mod_noise_inband = fft_mod_noise[:]
     fft_noise_inband_amp = np.linalg.norm(fft_mod_noise_inband)
     # Pn_true = Pn - ENBW
@@ -230,7 +242,7 @@ def fftplot(signal, fs,
         plt.ylabel(Nomalized)
         plt.grid(True, which='both')
         # plt.xscale('log')
-        plt.xscale('symlog', linthresh=fs/10)
+        plt.xscale('symlog', linthresh=fs / 10)
         #plt.plot(fft_freq, fft_mod_dbfs, linewidth = 1, marker = '.', markersize = 3)
         plt.plot(fft_freq, fft_mod_dbfs, linewidth=1, alpha=0.9, zorder=100)
         if Nomalized == 'dBFS':
