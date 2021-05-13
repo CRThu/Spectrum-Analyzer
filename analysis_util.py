@@ -181,7 +181,6 @@ def mask_array(arr_in, mask_bins, fill=0):
 # mask_bins is tuple. such as ((0,10),(20,50))
 # if prob_bin is not none, find bins around prob_bin first
 # Err = +/- 0.5 Bins
-# TODO Freq Correction
 def guess_fft_signal_bin(fft_mod, mask_bins=(), prob_bin=None, prob_bin_mainlobe=None):
     fft_mod_mask = mask_array(fft_mod, mask_bins, fill=0)
     if prob_bin is None:
@@ -201,10 +200,11 @@ def guess_fft_signal_bin(fft_mod, mask_bins=(), prob_bin=None, prob_bin_mainlobe
         return np.argmax(fft_mod_mask[prob_bin_min:prob_bin_max + 1]) + prob_bin_min
 
 # Guess Distortion Freq
-# Err = +/- 0.5 * HDx Bins
+# Generate 2 - HDx_max harmonic bins
+# Err = +/- Signal_Err * HDx Bins
 # TODO fold freq
 def guess_fft_hd_bin(guess_signal_bin, HDx_max):
-    return range(2, HDx_max + 1) * (guess_signal_bin + 1) - 1
+    return range(2, HDx_max + 1) * (guess_signal_bin)
 
 
 # Unit Testing

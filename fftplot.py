@@ -27,6 +27,7 @@ def fftplot(signal, fs,
             Zoom='All', Zoom_fin=None, Zoom_period=3,
             Nomalized='dBFS', FS=None,
             Window='HFT248D',
+            czt_zoom_window='blackmanharris', czt_zoom_ratio=100,
             PlotT=True, PlotSA=True, PlotSP=True,
             HDx_max=9,
             dBm_Z=600):
@@ -128,19 +129,17 @@ def fftplot(signal, fs,
         [0], current_window_mainlobe, fft_mod_len)
     # Guess signal bin
     guess_signal_bin = util.guess_fft_signal_bin(fft_mod, mask_bins_dc)
-    guess_signal_bin_err_range = (guess_signal_bin - 0.5, guess_signal_bin + 0.5)
+    guess_signal_bin_err_range = (
+        guess_signal_bin - 0.5, guess_signal_bin + 0.5)
     # Guess exact signal bin
-    # TODO: CALC ERR
-    # TODO: REFLATOR WINDOW
-    # TODO: DRAW TO VERIFY
     bins_zoomed, czt_zoomed = czt_zoom.czt_zoom(
-        signal * fftwin.get_window('blackmanharris', N), guess_signal_bin_err_range, N, zoom=10)
+        signal * fftwin.get_window(czt_zoom_window, N), guess_signal_bin_err_range, N, zoom=czt_zoom_ratio)
     guess_exact_signal_bin = bins_zoomed[np.argmax(abs(czt_zoomed))]
-    print(guess_exact_signal_bin / N * fs)
-    return
     # Guess harmonic distortion bin
-    # TODO: CALC EXACT HDx FREQ
-    guess_hd_bins = util.guess_fft_hd_bin(guess_signal_bin, HDx_max)
+    guess_exact_hd_bins = util.guess_fft_hd_bin(
+        guess_exact_signal_bin, HDx_max)
+    guess_hd_bins = np.round(guess_exact_hd_bins).astype(int)
+
     # mask_bins_signal : [Signal - L : Signal + L]
     mask_bins_signal = util.mask_bins_gen(
         [guess_signal_bin], current_window_mainlobe, fft_mod_len)
@@ -151,6 +150,7 @@ def fftplot(signal, fs,
     # Signal
     fft_signal_bin = guess_signal_bin
     fft_signal_freq = fft_freq[guess_signal_bin]
+    fft_exact_signal_freq = guess_exact_signal_bin / N * fs
     fft_signal_amp = fft_mod[guess_signal_bin]
     fft_signal_dbfs = fft_mod_dbfs[guess_signal_bin]
 
@@ -158,6 +158,7 @@ def fftplot(signal, fs,
     # hd2 hd3 ... hdx  bins & freqs & powers
     fft_hd_bins = guess_hd_bins
     fft_hd_freqs = [fft_freq[x] for x in fft_hd_bins]
+    fft_exact_hd_freqs = guess_exact_hd_bins / N * fs
     fft_hd_amps = [fft_mod[x] for x in fft_hd_bins]
     fft_hd_dbfs = [fft_mod_dbfs[x] for x in fft_hd_bins]
 
@@ -253,10 +254,10 @@ def fftplot(signal, fs,
         # Marker
         # Signal & HDx
         colors = np.random.rand(HDx_max)
-        plt.scatter([fft_signal_freq, ] + fft_hd_freqs, [fft_signal_dbfs, ] + fft_hd_dbfs,
+        plt.scatter(np.append([fft_exact_signal_freq, ], fft_exact_hd_freqs), np.append([fft_signal_dbfs, ], fft_hd_dbfs),
                     s=100, c=colors, alpha=1, marker='x', zorder=101)
-        plt.text(fft_signal_freq, fft_signal_dbfs, '%.3f Hz, %.3f %s'
-                 % (fft_signal_freq, fft_signal_dbfs, Nomalized), zorder=102)
+        plt.text(fft_exact_signal_freq, fft_signal_dbfs, '%.3f Hz, %.3f %s'
+                 % (fft_exact_signal_freq, fft_signal_dbfs, Nomalized), zorder=102)
         # Spur
         colors = np.random.rand(1)
         plt.scatter(fft_spur_freq, fft_spur_dbfs,
@@ -283,12 +284,12 @@ def fftplot(signal, fs,
     print('| ------ | --------------- | --------------- |')
     # Base
     print('| %-6s | %12.3f Hz | %10.3f %s |'
-          % ('BASE', fft_signal_freq, fft_signal_dbfs, Nomalized))
+          % ('BASE', fft_exact_signal_freq, fft_signal_dbfs, Nomalized))
     # HDx
     for i in range(HDx_max - 1):
         print('| %-6s | %12.3f Hz | %10.3f %s |'
               % ('HD%2d' % (i + 2),
-                  fft_hd_freqs[i], fft_hd_dbfs[i], Nomalized))
+                  fft_exact_hd_freqs[i], fft_hd_dbfs[i], Nomalized))
     print('| ------ | --------------- | --------------- |')
 
     # Spurious
@@ -315,6 +316,16 @@ def fftplot(signal, fs,
     for key, value in perf_dict.items():
         print('| %-6s | %9.3f %5s |' % ((key,) + value))
     print('| ------ | --------------- |')
+
+    # TEST CZT ZOOM RANGE
+    # plt.figure('Test Spectrum', figsize=(8, 5))
+    # plt.title('Magnitude Spectrum')
+    # plt.xlabel('Frequency')
+    # plt.ylabel('V')
+    # plt.grid(True, which='both')
+    # plt.plot(bins_zoomed/N*fs, abs(czt_zoomed)/N*2, linewidth=1, color='red', alpha=0.9, zorder=101)
+    # plt.plot(fft_freq, fft_mod, linewidth=1, color='black', alpha=0.9, zorder=100)
+    # plt.xlim(bins_zoomed[0]/N*fs-3,bins_zoomed[-1]/N*fs+3)
 
     if PlotT or PlotSA or PlotSP:
         plt.show(block=False)
