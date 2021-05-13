@@ -10,23 +10,32 @@ from scipy import signal as wd
 # Window Reference: https://holometer.fnal.gov/GH_FFT.pdf
 
 winCoef = {
+    'rectangle': {
+        'type': 'linear',
+        'CPG': 1,
+        'mainlobe': 1,
+        'ENBW': 1.0000, },
     'blackmanharris': {
+        'type': 'cosine',
         'weight': [0.35875, 0.48829, 0.14128, 0.01168],
         'CPG': 2.787,
         'mainlobe': 4,
         'ENBW': 2.0044, },
     'HFT90D': {
+        'type': 'cosine',
         'weight': [1, 1.942604, 1.340318, 0.440811, 0.043097],
         'CPG': 1.000,
         'mainlobe': 5,
         'ENBW': 3.8832, },
     'HFT144D': {
+        'type': 'cosine',
         'weight': [1, 1.96760033, 1.57983607, 0.81123644,
                    0.22583558, 0.02773848, 0.00090360],
         'CPG': 1.000,
         'mainlobe': 7,
         'ENBW': 4.5386, },
     'HFT248D': {
+        'type': 'cosine',
         'weight': [1, 1.985844164102, 1.791176438506, 1.282075284005,
                    0.667777530266, 0.240160796576, 0.056656381764, 0.008134974479,
                    0.000624544650, 0.000019808998, 0.000000132974],
@@ -39,6 +48,8 @@ winCoef = {
 def general_cosine(N, weight, CPG=1.000, sym=True):
     return wd.windows.general_cosine(N, weight, sym=sym) * CPG
 
+def rectangle(N):
+    return [1] * N
 
 def blackmanharris(N, sym=True):
     return general_cosine(N, winCoef['blackmanharris']['weight'], winCoef['blackmanharris']['CPG'], sym=sym)
@@ -57,7 +68,12 @@ def HFT248D(N, sym=True):
 
 
 def get_window(window, N, sym=True):
-    return general_cosine(N, winCoef[window]['weight'], winCoef[window]['CPG'], sym=sym)
+    if has_window(window):
+        if winCoef[window]['type'] == 'cosine':
+            return general_cosine(N, winCoef[window]['weight'], winCoef[window]['CPG'], sym=sym)
+        elif winCoef[window]['type'] == 'linear':
+            if window == 'rectangle':
+                return rectangle(N)
 
 
 def has_window(window):

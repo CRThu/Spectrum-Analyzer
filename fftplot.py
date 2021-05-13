@@ -27,18 +27,15 @@ def fftplot(signal, fs,
             Zoom='All', Zoom_fin=None, Zoom_period=3,
             Nomalized='dBFS', FS=None,
             Window='HFT248D',
-            czt_zoom_window='blackmanharris', czt_zoom_ratio=100,
+            czt_zoom_window='blackmanharris', czt_zoom_ratio=10,
             PlotT=True, PlotSA=True, PlotSP=True,
             HDx_max=9,
             dBm_Z=600):
 
-    # TODO Fix Bugs in Vrms
+    # TODO Fix Bugs in dbm
     assert Nomalized == 'dBFS'
     assert Nomalized != 'dBm'
-    assert Nomalized != 'Vrms'
     # TODO Recalc Window CPG
-    assert Window != 'Raw'
-    assert Window != 'rectangle'
     assert Window != 'flattop'
 
     N = len(signal)
@@ -130,7 +127,7 @@ def fftplot(signal, fs,
     # Guess signal bin
     guess_signal_bin = util.guess_fft_signal_bin(fft_mod, mask_bins_dc)
     guess_signal_bin_err_range = (
-        guess_signal_bin - 0.5, guess_signal_bin + 0.5)
+        guess_signal_bin - 1, guess_signal_bin + 1)
     # Guess exact signal bin
     bins_zoomed, czt_zoomed = czt_zoom.czt_zoom(
         signal * fftwin.get_window(czt_zoom_window, N), guess_signal_bin_err_range, N, zoom=czt_zoom_ratio)
