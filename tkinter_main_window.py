@@ -1,5 +1,11 @@
 import tkinter as tk
 
+# Reference
+# https://www.cnblogs.com/zyg123/p/10385456.html
+# https://blog.csdn.net/RNG_uzi_/article/details/91894935
+# https://matplotlib.org/stable/gallery/user_interfaces/embedding_in_tk_sgskip.html#sphx-glr-gallery-user-interfaces-embedding-in-tk-sgskip-py
+# https://blog.csdn.net/weixin_43708622/article/details/107134216
+
 class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)

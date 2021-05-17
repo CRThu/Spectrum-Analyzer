@@ -16,7 +16,7 @@ import czt_zoom
 info = {
     'name': 'FFT ANALYSIS PROGRAM',
     'project': '202116A',
-    'version': '1.2',
+    'version': '1.4',
     'release': 'alpha',
     'author': 'written by carrot',
 }
@@ -32,7 +32,7 @@ def fftplot(signal, fs,
             HDx_max=9,
             dBm_Z=600):
 
-    # TODO Fix Bugs in dbm
+    # TODO add dBm
     assert Nomalized == 'dBFS'
     assert Nomalized != 'dBm'
     # TODO Recalc Window CPG
@@ -134,7 +134,7 @@ def fftplot(signal, fs,
     guess_exact_signal_bin = bins_zoomed[np.argmax(abs(czt_zoomed))]
     # Guess harmonic distortion bin
     guess_exact_hd_bins = util.guess_fft_hd_bin(
-        guess_exact_signal_bin, HDx_max)
+        guess_exact_signal_bin, HDx_max, N)
     guess_hd_bins = np.round(guess_exact_hd_bins).astype(int)
 
     # mask_bins_signal : [Signal - L : Signal + L]
@@ -221,16 +221,16 @@ def fftplot(signal, fs,
         plt.grid(True, which='both')
         if Zoom == 'All':
             if Wave == 'Raw':
-                #plt.plot(signal_k, signal, linewidth = 1, marker = '.', markersize = 3)
+                #plt.plot(signal_k, signal, linewidth = 1, marker = '.', markersize = 2)
                 plt.plot(signal_k, signal, linewidth=1)
             elif Wave == 'Windowed':
                 plt.plot(signal_k, signal_win,
-                         linewidth=1, marker='.', markersize=3)
+                         linewidth=1, marker='.', markersize=2)
         elif Zoom == 'Part':
             assert Zoom_fin > 0
             plt.plot(signal_k[range(round(fs / Zoom_fin * Zoom_period))],
                      signal[range(round(fs / Zoom_fin * Zoom_period))],
-                     linewidth=1, marker='.', markersize=3)
+                     linewidth=1, marker='.', markersize=2)
 
     if PlotSA == True:
         # Magnitude Spectrum Plot
@@ -364,4 +364,4 @@ if __name__ == '__main__':
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
     fftplot(signal=adcout, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
             Zoom='Part', Zoom_fin=Wave_freq,
-            PlotT=False, PlotSA=True, PlotSP=False)
+            PlotT=True, PlotSA=True, PlotSP=False)

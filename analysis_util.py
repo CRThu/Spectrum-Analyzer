@@ -202,9 +202,18 @@ def guess_fft_signal_bin(fft_mod, mask_bins=(), prob_bin=None, prob_bin_mainlobe
 # Guess Distortion Freq
 # Generate 2 - HDx_max harmonic bins
 # Err = +/- Signal_Err * HDx Bins
-# TODO fold freq
-def guess_fft_hd_bin(guess_signal_bin, HDx_max):
-    return range(2, HDx_max + 1) * (guess_signal_bin)
+# Fold freq out of the 1st Nyquist zone
+# abs(+/-K*fs +/-fa)
+# K=0: fa
+# K=1: fs-fa    fs+fa
+# K=2: 2fs-fa   2fs+fa
+def guess_fft_hd_bin(guess_signal_bin, HDx_max, N):
+    # return np.arange(2, HDx_max + 1) * guess_signal_bin
+    hd_bins = np.arange(2, HDx_max + 1) * guess_signal_bin
+    nyquist_zone = np.floor(hd_bins / (N / 2)) + 1
+    K = np.floor(nyquist_zone / 2)
+    hd_fold_bins = np.abs(hd_bins - K * N)
+    return hd_fold_bins
 
 
 # Unit Testing
@@ -212,7 +221,8 @@ if __name__ == '__main__':
     print('analysis_util')
     test_range_format = False
     test_mask = False
-    test_guess_fft_signal_bin = True
+    test_guess_fft_signal_bin = False
+    test_guess_fft_hd_bin = True
 
     if test_range_format == True:
         # Hold Range
@@ -277,3 +287,25 @@ if __name__ == '__main__':
             testL, mask_bins=((0, 2),)))
         print('argmax(around 13) =', guess_fft_signal_bin(
             testL, prob_bin=15, prob_bin_mainlobe=7))
+
+    if test_guess_fft_hd_bin == True:
+        freq = 12.5
+        fs = 2000
+        N = 2000
+        #freq_bin = freq / (fs / N)
+        freq_bin = freq
+        hd_bin = guess_fft_hd_bin(freq_bin, 9, N)
+        #hd_freq = hd_bin * (fs / N)
+        hd_freq = hd_bin
+        # harmonic distortion in the 1st Nyquist zone
+        # FREQ:  12.5 , HDFREQ:  [ 25.   37.5  50.   62.5  75.   87.5 100.  112.5]
+        print('FREQ: ', freq, ', HDFREQ: ', hd_freq)
+        freq = 700
+        #freq_bin = freq / (fs / N)
+        freq_bin = freq
+        hd_bin = guess_fft_hd_bin(freq_bin, 9, N)
+        #hd_freq = hd_bin * (fs / N)
+        hd_freq = hd_bin
+        # harmonic distortion out of 1st Nyquist zone
+        # FREQ:  700 , HDFREQ:  [600. 100. 800. 500. 200. 900. 400. 300.]
+        print('FREQ: ', freq, ', HDFREQ: ', hd_freq)
