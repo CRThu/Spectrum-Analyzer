@@ -10,19 +10,20 @@ from scipy.fftpack import fft, ifft
 
 import adcmodel
 import analysis_util as util
-import fftwin
 import czt_zoom
+import fftwin
 
 info = {
     'name': 'FFT ANALYSIS PROGRAM',
     'project': '202116A',
-    'version': '1.4',
+    'version': '1.5',
     'release': 'alpha',
     'author': 'written by carrot',
 }
 
 
 def fftplot(signal, fs,
+            noise_band=None, spurious_existed_freqs=((),),
             Wave='Raw',
             Zoom='All', Zoom_fin=None, Zoom_period=3,
             Nomalized='dBFS', FS=None,
@@ -153,6 +154,7 @@ def fftplot(signal, fs,
 
     # Harmonic distortion
     # hd2 hd3 ... hdx  bins & freqs & powers
+    # TODO: Find peak power around distortion
     fft_hd_bins = guess_hd_bins
     fft_hd_freqs = [fft_freq[x] for x in fft_hd_bins]
     fft_exact_hd_freqs = guess_exact_hd_bins / N * fs
@@ -160,9 +162,16 @@ def fftplot(signal, fs,
     fft_hd_dbfs = [fft_mod_dbfs[x] for x in fft_hd_bins]
 
     # Spurious
+    # throw exist spurious
+    spurious_existed_bins = ((),)
+    for spurious_existed_freq in spurious_existed_freqs:
+        if len(spurious_existed_freq) == 2:
+            spurious_existed_bins += ((int(spurious_existed_freq[0] / (fs / N)),
+                                       int(spurious_existed_freq[1] / (fs / N))),)
     # Peak Harmonic distortion or Spurious Noise
     # Calc peak power except [DC : DC + L], [Signal - L : Signal + L]
-    fft_mod_spur = util.mask_array(fft_mod, mask_bins_dc + mask_bins_signal)
+    fft_mod_spur = util.mask_array(
+        fft_mod, mask_bins_dc + mask_bins_signal + spurious_existed_bins)
     fft_spur_bin = np.argmax(fft_mod_spur)
     fft_spur_freq = fft_freq[fft_spur_bin]
     fft_spur_amp = fft_mod[fft_spur_bin]
@@ -170,16 +179,17 @@ def fftplot(signal, fs,
 
     # Noise
     # Calc peak power except [DC : DC + L], [Signal - L : Signal + L], [HDx - L : HDx + L]
-    # TODO Noise in band
-    # TODO Supr expected
     fft_mod_noise = util.mask_array(
-        fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd)
+        fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd + spurious_existed_bins)
     # Noise Correction for mask
     fft_mod_noise_mid = np.median(fft_mod_noise)
     fft_mod_noise = util.mask_array(
-        fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd, fill=fft_mod_noise_mid)
+        fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd + spurious_existed_bins, fill=fft_mod_noise_mid)
 
+    # noise_band
     fft_mod_noise_inband = fft_mod_noise[:]
+    if noise_band is not None:
+        fft_mod_noise_inband = fft_mod_noise[:int(noise_band / fs * N) + 1]
     fft_noise_inband_amp = np.linalg.norm(fft_mod_noise_inband)
     # Pn_true = Pn - ENBW
     fft_noise_inband_amp /= fftwin.get_window_ENBW(Window) ** 0.5
@@ -363,5 +373,5 @@ if __name__ == '__main__':
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D')
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
     fftplot(signal=adcout, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
-            Zoom='Part', Zoom_fin=Wave_freq,
+            Zoom='Part', Zoom_fin=Wave_freq,  # noise_band=0.5 * fs / 2,
             PlotT=True, PlotSA=True, PlotSP=False)
