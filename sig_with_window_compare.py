@@ -12,18 +12,26 @@ import fftwin
 import adcmodel
 import analysis_util as util
 
-Window = 'blackmanharris'
-#Window = ['rectangle','blackmanharris','HFT90D']
+Windows = ['rectangle', 'hamming', 'hanning',
+           'flattop', 'blackmanharris', 'nuttall3', 'nuttall4']
+image_num = 1
+
+#Windows = ['rectangle', 'flattop', 'HFT90D', 'HFT248D']
+#image_num = 2
 
 # Sample Info
-N = 1024
+N = 256
 fs = 200000
 FS = 2.5
 FS_Vamp = FS / 2
 FS_Vrms = FS / 2 / math.sqrt(2)
 Wave = 'sine'
 Wave_offset = 0
-Wave_freq = 9570.3125 * 3
+Wave_freq = 57 * fs / N
+
+display_range = (10000, 90000)
+fft_display_start_bin = math.floor(display_range[0] / fs * N)
+fft_display_stop_bin = math.ceil(display_range[1] / fs * N)
 
 adcout = adcmodel.adcmodel(N=N, fs=fs, FS=FS,
                            #HDx=[-45, -60, -75],
@@ -36,49 +44,40 @@ half_N = int(N / 2) + 1
 
 fft_freq = np.linspace(0, fs / 2, half_N)
 
-# FFT
-signal_fft = fft(adcout)
-signal_fft = signal_fft[range(half_N)]
-fft_mod = np.abs(signal_fft)
-fft_phase = np.angle(signal_fft)
-
-# FFT Nomalized : DC & Vamp
-fft_mod[0] = fft_mod[0] / N
-fft_mod[range(1, half_N)] = fft_mod[range(1, half_N)] * 2 / N
-
-# FFT with window
-# Window
-# winN = wd.blackmanharris(N)
-if fftwin.has_window(Window):
-    winN = fftwin.get_window(Window, N)
-
-signal_win = winN * adcout
-
-signal_fft_win = fft(signal_win)
-signal_fft_win = signal_fft_win[range(half_N)]
-fft_mod_win = np.abs(signal_fft_win)
-fft_phase_win = np.angle(signal_fft_win)
-
-# FFT Nomalized : DC & Vamp
-fft_mod_win[0] = fft_mod_win[0] / N
-fft_mod_win[range(1, half_N)] = fft_mod_win[range(1, half_N)] * 2 / N
-
-# Nomalized : FS
-fft_mod = fft_mod / FS_Vamp
-fft_mod_win = fft_mod_win / FS_Vamp
-# Nomalized : dB
-fft_mod = util.vratio2db_np(fft_mod)
-fft_mod_win = util.vratio2db_np(fft_mod_win)
-
 plt.figure()
-plt.plot(fft_freq / 1e3, fft_mod_win, 'black',
-         linewidth=1.5, alpha=0.9, label='FFT with Blackman-Harris Window')
-plt.plot(fft_freq / 1e3, fft_mod, 'red', linewidth=1.5,
-         alpha=0.9, label='FFT without Window')
-plt.ylim(top=1, bottom=-200)
-plt.xlabel("Frequency (kHz)")
-plt.ylabel("Magnitude(dBFS)")
+for win in Windows:
+    # FFT with window
+    if fftwin.has_window(win):
+        winN = fftwin.get_window(win, N)
+    else:
+        winN = wd.get_window(win, N)
+
+    signal_win = winN * adcout
+
+    signal_fft_win = fft(signal_win)
+    signal_fft_win = signal_fft_win[range(half_N)]
+    fft_mod_win = np.abs(signal_fft_win)
+    fft_phase_win = np.angle(signal_fft_win)
+
+    # FFT Nomalized : DC & Vamp
+    fft_mod_win[0] = fft_mod_win[0] / N
+    fft_mod_win[range(1, half_N)] = fft_mod_win[range(1, half_N)] * 2 / N
+
+    # Nomalized : 0dB
+    fft_mod_win = fft_mod_win / np.max(fft_mod_win)
+    # Nomalized : dB
+    fft_mod_win = util.vratio2db_np(fft_mod_win)
+
+    plt.step(fft_freq[fft_display_start_bin:fft_display_stop_bin] / 1e3,
+             fft_mod_win[fft_display_start_bin:fft_display_stop_bin],
+             linewidth=1, alpha=0.9, label=win, where='mid')
+
 plt.grid(True, which='both')
-plt.legend()
+#plt.ylim(top=1, bottom=-300)
+plt.xlabel("Frequency (kHz)")
+plt.ylabel("Magnitude(dB Nomalized)")
+plt.grid(True, which='both')
+plt.legend(loc='upper right')
 plt.title("Frequency-domain signal")
-plt.savefig("./image/sig_with_window_compare.png", dpi=600)
+plt.savefig("./image/sig_with_window_compare_" +
+            str(image_num) + ".png", dpi=600)

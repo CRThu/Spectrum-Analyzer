@@ -9,6 +9,7 @@ from scipy import signal as wd
 # ENBW (Bins)
 # Window Reference: https://holometer.fnal.gov/GH_FFT.pdf
 
+# TODO Nuttall3/4 window CPG need to be calculated
 winCoef = {
     'rectangle': {
         'type': 'linear',
@@ -21,6 +22,18 @@ winCoef = {
         'CPG': 2.787,
         'mainlobe': 4,
         'ENBW': 2.0044, },
+    'nuttall3': {
+        'type': 'cosine',
+        'weight': [0.375, 0.5, 0.125],
+        'CPG': 1,
+        'mainlobe': 3,
+        'ENBW': 1.9444, },
+    'nuttall4': {
+        'type': 'cosine',
+        'weight': [0.3125, 0.46875, 0.1875,0.03125],
+        'CPG': 1,
+        'mainlobe': 4,
+        'ENBW': 2.3100, },
     'HFT90D': {
         'type': 'cosine',
         'weight': [1, 1.942604, 1.340318, 0.440811, 0.043097],
