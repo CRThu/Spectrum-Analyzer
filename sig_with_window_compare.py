@@ -10,25 +10,25 @@ from scipy.fftpack import fft, ifft
 
 import fftwin
 import adcmodel
+import analysis_util as util
 
 Window = 'blackmanharris'
-
+#Window = ['rectangle','blackmanharris','HFT90D']
 
 # Sample Info
 N = 1024
-fs = 193986.56
+fs = 200000
 FS = 2.5
+FS_Vamp = FS / 2
 FS_Vrms = FS / 2 / math.sqrt(2)
 Wave = 'sine'
 Wave_offset = 0
-#Wave_freq = 1001.22
-#Wave_freq = 1000.105
-Wave_freq = 10000.11
+Wave_freq = 9570.3125 * 3
 
 adcout = adcmodel.adcmodel(N=N, fs=fs, FS=FS,
-                           HDx=[-20, -30, -40],
+                           #HDx=[-45, -60, -75],
                            Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=0.776,
-                           adc_bits=None, DR=30)
+                           adc_bits=None, DR=None)
 
 
 N = len(adcout)
@@ -63,14 +63,22 @@ fft_phase_win = np.angle(signal_fft_win)
 fft_mod_win[0] = fft_mod_win[0] / N
 fft_mod_win[range(1, half_N)] = fft_mod_win[range(1, half_N)] * 2 / N
 
+# Nomalized : FS
+fft_mod = fft_mod / FS_Vamp
+fft_mod_win = fft_mod_win / FS_Vamp
+# Nomalized : dB
+fft_mod = util.vratio2db_np(fft_mod)
+fft_mod_win = util.vratio2db_np(fft_mod_win)
+
 plt.figure()
 plt.plot(fft_freq / 1e3, fft_mod_win, 'black',
-         linewidth=1.5, alpha=0.9, label='FFT with Window')
+         linewidth=1.5, alpha=0.9, label='FFT with Blackman-Harris Window')
 plt.plot(fft_freq / 1e3, fft_mod, 'red', linewidth=1.5,
          alpha=0.9, label='FFT without Window')
+plt.ylim(top=1, bottom=-200)
 plt.xlabel("Frequency (kHz)")
-plt.ylabel("Magnitude")
+plt.ylabel("Magnitude(dBFS)")
 plt.grid(True, which='both')
 plt.legend()
 plt.title("Frequency-domain signal")
-plt.savefig("./image/sig_with_win.png", dpi=600)
+plt.savefig("./image/sig_with_window_compare.png", dpi=600)
