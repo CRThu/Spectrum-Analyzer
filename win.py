@@ -4,10 +4,10 @@ from scipy.fftpack import fft,fftshift
 import matplotlib.pyplot as plt
 import fftwin
 
-#window = signal.windows.blackmanharris(1048576)
+#window = signal.windows.blackmanharris(256)
 #window = signal.windows.kaiser(51, beta=100)
-window = fftwin.get_window('HFT248D', 256)
-#window = fftwin.get_window('blackmanharris', 1048576)
+#window = fftwin.get_window('HFT248D', 256)
+window = fftwin.get_window('blackmanharris', 256)
 plt.plot(window)
 plt.title(r"window")
 plt.ylabel("Amplitude")

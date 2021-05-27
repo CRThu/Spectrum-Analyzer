@@ -43,7 +43,8 @@ if __name__ == '__main__':
     czt_zoomed = czt_zoomed / N * 2
 
     plt.figure()
-    plt.plot(freq[0:int(len(freq)/2)+1] * fs / 1e3, fft_mod[0:int(len(freq)/2)+1], 'b', label='FFT',zorder=100)
+    plt.plot(freq[0:int(len(freq) / 2) + 1] * fs / 1e3,
+             fft_mod[0:int(len(freq) / 2) + 1], 'b', label='FFT', zorder=100)
     plt.plot(freq * fs / 1e3, np.abs(sig_f), 'k', label='CZT')
     plt.plot(freq_zoomed / 1e3, np.abs(czt_zoomed), 'r', label='Zoom CZT')
     plt.xlabel("Frequency (kHz)")
@@ -51,7 +52,7 @@ if __name__ == '__main__':
     #plt.xlim([0, freq.max() / 1e3])
     plt.legend()
     plt.title("Frequency-domain signal")
-    plt.savefig("czt-zoom.png", dpi=600)
+    plt.savefig("./image/czt-zoom-test.png", dpi=600)
 
     czt_fft_err = np.abs(np.abs(fft_mod) - np.abs(sig_f))
     print('err:(', np.min(czt_fft_err), ',', np.max(czt_fft_err), ')')

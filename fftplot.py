@@ -16,9 +16,9 @@ import fftwin
 info = {
     'name': 'FFT ANALYSIS PROGRAM',
     'project': '202116A',
-    'version': '1.5',
-    'release': 'alpha',
-    'author': 'written by carrot',
+    'version': '1.8',
+    'release': 'beta',
+    'author': 'programed by carrot',
 }
 
 
@@ -29,6 +29,7 @@ def fftplot(signal, fs,
             Nomalized='dBFS', FS=None,
             Window='HFT248D',
             czt_zoom_window='blackmanharris', czt_zoom_ratio=10,
+            Noise_corr=True,
             PlotT=True, PlotSA=True, PlotSP=True,
             HDx_max=9,
             dBm_Z=600):
@@ -38,6 +39,8 @@ def fftplot(signal, fs,
     assert Nomalized != 'dBm'
     # TODO Recalc Window CPG
     assert Window != 'flattop'
+
+    FS_Vamp = util.vpp2vamp(FS)
 
     N = len(signal)
     half_N = int(N / 2) + 1
@@ -113,10 +116,7 @@ def fftplot(signal, fs,
     fft_mod_dbfs = np.zeros(half_N)
     assert FS > 0
     # Nomalized : FS
-    # TODO CHECK HERE
-    fft_mod_dbfs[0] = fft_mod[0] / FS
-    fft_mod_dbfs[range(1, half_N)] = fft_mod[range(1, half_N)] * 2 / FS
-    #fft_mod_dbfs = fft_mod / FS
+    fft_mod_dbfs = fft_mod / FS_Vamp
     # Nomalized : dB
     fft_mod_dbfs = util.vratio2db_np(fft_mod_dbfs)
 
@@ -184,9 +184,10 @@ def fftplot(signal, fs,
     fft_mod_noise = util.mask_array(
         fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd + spurious_existed_bins)
     # Noise Correction for mask
-    fft_mod_noise_mid = np.median(fft_mod_noise)
-    fft_mod_noise = util.mask_array(
-        fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd + spurious_existed_bins, fill=fft_mod_noise_mid)
+    if Noise_corr == True:
+        fft_mod_noise_mid = np.median(fft_mod_noise)
+        fft_mod_noise = util.mask_array(
+            fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd + spurious_existed_bins, fill=fft_mod_noise_mid)
 
     # noise_band
     fft_mod_noise_inband = fft_mod_noise[:]
@@ -361,6 +362,9 @@ if __name__ == '__main__':
                                HDx=[-95, -90, -100],
                                Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=Wave_Vrms,
                                adc_bits=None, DR=100)
+
+    print('Data length = %d, Range = [%f,%f]' % (
+        len(adcout), np.min(adcout), np.max(adcout)))
 
     # Time
     #fftplot(signal = adcout, fs = fs, Zoom = 'Part', Zoom_fin = min(Wave_freq) * 0.995, Nomalized = 'dBFS', FS = FS)

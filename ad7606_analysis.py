@@ -7,7 +7,7 @@ if __name__ == '__main__':
 
     fs = 200000
 
-    FS = 20 # +/-5V
+    FS = 20 # +/-10V
 
     offset = 0
     Zoom_fin = 1000
@@ -21,7 +21,6 @@ if __name__ == '__main__':
     adc_sample = dec.adc_decode(path+filename+ext, base='hex',
                                 encode='offset', adc_bits=16, FS=FS, offset=offset)
 
-    print(len(adc_sample),min(adc_sample),max(adc_sample))
     f.fftplot(signal=adc_sample, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
               Zoom='Part', Zoom_fin=Zoom_fin,
               HDx_max=5,
