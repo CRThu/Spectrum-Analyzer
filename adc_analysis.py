@@ -6,13 +6,22 @@ import fftplot as f
 if __name__ == '__main__':
 
     fs = 200000
-    FS = 10
+
+    FS = 20 # +/-5V
+
     offset = 0
     Zoom_fin = 1000
 
-    adc_sample = dec.adc_decode('./TestData_88d69.txt', base='hex',
-                                encode='offset', adc_bits=16, FS=10, offset=0)
+    #filename = './TestData_88d69.txt'
 
+    path = 'D:/Files/202105毕业论文/Export/动态/'
+    filename = 'File_AdDataConvert_4Lt4P_89d52'
+    ext='.txt'
+
+    adc_sample = dec.adc_decode(path+filename+ext, base='hex',
+                                encode='offset', adc_bits=16, FS=FS, offset=offset)
+
+    print(len(adc_sample),min(adc_sample),max(adc_sample))
     f.fftplot(signal=adc_sample, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
               Zoom='Part', Zoom_fin=Zoom_fin,
               HDx_max=5,

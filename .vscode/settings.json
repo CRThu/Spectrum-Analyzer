@@ -2,6 +2,6 @@
     "python.formatting.autopep8Args": [
         "--ignore=E302"
     ],
-    "python.pythonPath": "C:\\Users\\huyuzhe\\AppData\\Local\\Programs\\Python\\Python38\\python.exe",
+    "python.pythonPath": "C:\\Users\\carrot\\anaconda3\\python.exe",
     "jupyter.jupyterServerType": "local"
 }

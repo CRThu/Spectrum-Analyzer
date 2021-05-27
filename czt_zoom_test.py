@@ -33,8 +33,8 @@ if __name__ == '__main__':
     time_end = time.time()
     print('points', len(freq_zoomed), ', totally cost', time_end - time_start)
 
-    print('Gen Data Calc:', gen_freq[0]*fs)
-    print('Raw Data Calc:', freq[np.argmax(np.abs(sig_f))]*fs)
+    print('Gen Data Calc:', gen_freq[0] * fs)
+    print('Raw Data Calc:', freq[np.argmax(np.abs(sig_f))] * fs)
     print('Zoom Data Calc:', freq_zoomed[np.argmax(np.abs(czt_zoomed))])
 
     fft_mod = np.abs(np.fft.fftshift(np.fft.fft(sig)))
@@ -43,8 +43,7 @@ if __name__ == '__main__':
     czt_zoomed = czt_zoomed / N * 2
 
     plt.figure()
-    plt.plot(freq * fs / 1e3,
-             fft_mod, 'b', label='FFT')
+    plt.plot(freq[0:int(len(freq)/2)+1] * fs / 1e3, fft_mod[0:int(len(freq)/2)+1], 'b', label='FFT',zorder=100)
     plt.plot(freq * fs / 1e3, np.abs(sig_f), 'k', label='CZT')
     plt.plot(freq_zoomed / 1e3, np.abs(czt_zoomed), 'r', label='Zoom CZT')
     plt.xlabel("Frequency (kHz)")

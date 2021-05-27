@@ -113,8 +113,10 @@ def fftplot(signal, fs,
     fft_mod_dbfs = np.zeros(half_N)
     assert FS > 0
     # Nomalized : FS
+    # TODO CHECK HERE
     fft_mod_dbfs[0] = fft_mod[0] / FS
     fft_mod_dbfs[range(1, half_N)] = fft_mod[range(1, half_N)] * 2 / FS
+    #fft_mod_dbfs = fft_mod / FS
     # Nomalized : dB
     fft_mod_dbfs = util.vratio2db_np(fft_mod_dbfs)
 
@@ -347,6 +349,8 @@ if __name__ == '__main__':
     fs = 193986.56
     FS = 2.5
     FS_Vrms = FS / 2 / math.sqrt(2)
+    #Wave_Vrms = 0.776
+    Wave_Vrms = FS_Vrms
     Wave = 'sine'
     Wave_offset = 0
     #Wave_freq = 1001.22
@@ -355,7 +359,7 @@ if __name__ == '__main__':
 
     adcout = adcmodel.adcmodel(N=N, fs=fs, FS=FS,
                                HDx=[-95, -90, -100],
-                               Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=0.776,
+                               Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=Wave_Vrms,
                                adc_bits=None, DR=100)
 
     # Time
