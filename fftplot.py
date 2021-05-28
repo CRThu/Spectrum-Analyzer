@@ -14,7 +14,7 @@ import czt_zoom
 import fftwin
 
 info = {
-    'name': 'FFT ANALYSIS PROGRAM',
+    'name': 'SPECTRUM ANALYZER PROGRAM',
     'project': '202116A',
     'version': '1.8',
     'release': 'beta',

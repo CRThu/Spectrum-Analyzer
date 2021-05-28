@@ -1,13 +1,13 @@
 import numpy as np
 
-import adc_decode as dec
+import data_decode as dec
 import fftplot as f
 
 if __name__ == '__main__':
 
     fs = 50
     FS = 5
-    offset = 0
+    vbias = 0
 
     #Zoom_fin = 0.1
     Zoom_fin = 1
@@ -24,8 +24,8 @@ if __name__ == '__main__':
     file = './data/AD7124_HP;Post Filter;50SPS;Noise;.txt'
     
 
-    adc_sample = dec.adc_decode(filename=file, base='dec',
-                                encode='offset', adc_bits=24, FS=FS, offset=offset)
+    adc_sample = dec.data_decode(filename=file, base='dec',
+                                encode='offset', adc_bits=24, FS=FS, vbias=vbias)
 
     print('Data length = %d, Range = [%f,%f]' % (
         len(adc_sample), np.min(adc_sample), np.max(adc_sample)))

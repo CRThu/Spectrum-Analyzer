@@ -6,8 +6,9 @@ import numpy as np
 # split: \r\n,;| or others
 # base: hex/dec
 # encode: offset/comp
-def adc_decode(filename, split='', base='hex', encode='offset',
-               adc_bits=16, FS=5, offset=0):
+# TODO encode:comp
+def data_decode(filename, split='', base='hex', encode='offset',
+               adc_bits=16, FS=5, vbias=0):
     # Read file without blank
     with open(filename, 'r') as f:
         adc_data_strs = f.read().replace(' ', '')
@@ -43,13 +44,13 @@ def adc_decode(filename, split='', base='hex', encode='offset',
 
     # convert voltage
     adc_data *= FS / 2 ** adc_bits
-    adc_data += offset
+    adc_data += vbias
     return adc_data
 
 
 if __name__ == '__main__':
     print('analysis_util')
-    adc_data = adc_decode('./TestData_88d69.txt', base='hex',
-                          encode='offset', adc_bits=16, FS=10, offset=0)
+    adc_data = data_decode('./TestData_88d69.txt', base='hex',
+                          encode='offset', adc_bits=16, FS=10, vbias=0)
     print('Data length = %d, Range = [%f,%f]' % (
         len(adc_data), np.min(adc_data), np.max(adc_data)))
