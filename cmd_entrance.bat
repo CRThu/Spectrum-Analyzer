@@ -1,0 +1,1 @@
+python.exe cmd_main.py -f=./data/AD7606_TestData_88d69.txt -db=hex -b=16 -fc=10 -fs=200000 -hd=5
