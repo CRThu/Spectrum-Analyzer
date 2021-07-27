@@ -32,7 +32,7 @@ def fftplot(signal, fs,
             PlotT=True, PlotSA=True, PlotSP=True,
             HDx_max=9,
             dBm_Z=600,
-            mpl_plot=True
+            axes:plt.Axes=None, override_print=None
             ):
 
     # TODO add dBm
@@ -221,7 +221,6 @@ def fftplot(signal, fs,
         vspur=fft_spur_amp)
 
     ### GUI ###
-    mpl_figs = []
     # GUI Config
     mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei']
     mpl.rcParams['axes.unicode_minus'] = False
@@ -229,8 +228,11 @@ def fftplot(signal, fs,
 
     if PlotT == True:
         # Time Domain Plot
-        fig = plt.figure(figsize=(8, 5))
-        ax = fig.gca()
+        if axes is None:
+            fig = plt.figure(figsize=(8, 5))
+            ax = fig.gca()
+        else:
+            ax = axes
         ax.set_title('Time', fontsize=16)
         ax.set_xlabel('Samples')
         ax.set_ylabel('Voltage')
@@ -247,12 +249,14 @@ def fftplot(signal, fs,
             ax.plot(signal_k[range(round(fs / Zoom_fin * Zoom_period))],
                     signal[range(round(fs / Zoom_fin * Zoom_period))],
                     linewidth=1, marker='.', markersize=2)
-        mpl_figs.append(fig)
 
     if PlotSA == True:
         # Magnitude Spectrum Plot
-        fig = plt.figure(figsize=(8, 5))
-        ax = fig.gca()
+        if axes is None:
+            fig = plt.figure(figsize=(8, 5))
+            ax = fig.gca()
+        else:
+            ax = axes
         ax.set_title('Magnitude Spectrum', fontsize=16)
         ax.set_xlabel('Frequency')
         ax.set_ylabel(Nomalized)
@@ -277,12 +281,14 @@ def fftplot(signal, fs,
         colors = np.random.rand(1)
         ax.scatter(fft_spur_freq, fft_spur_dbfs,
                    s=100, c=colors, alpha=1, marker='+', zorder=103)
-        mpl_figs.append(fig)
 
     if PlotSP == True:
         # Phase Spectrum Plot
-        fig = plt.figure(figsize=(8, 5))
-        ax = fig.gca()
+        if axes is None:
+            fig = plt.figure(figsize=(8, 5))
+            ax = fig.gca()
+        else:
+            ax = axes
         ax.set_title('Phase Spectrum', fontsize=16)
         ax.set_xlabel('Frequency')
         ax.set_ylabel('Phase')
@@ -295,45 +301,50 @@ def fftplot(signal, fs,
         ymajorFormatter = FormatStrFormatter('%5.2f π')
         ax.yaxis.set_major_locator(ymajorLocator)
         ax.yaxis.set_major_formatter(ymajorFormatter)
-        mpl_figs.append(fig)
 
     ### REPORT ###
-    # Report
-    print('| ------ | --------------- | --------------- |')
+    report_strlist = []
+    report_strlist.append('| ------ | --------------- | --------------- |')
     # Base
-    print('| %-6s | %12.3f Hz | %10.3f %s |'
-          % ('BASE', fft_exact_signal_freq, fft_signal_dbfs, Nomalized))
+    report_strlist.append('| %-6s | %12.3f Hz | %10.3f %s |'
+                          % ('BASE', fft_exact_signal_freq, fft_signal_dbfs, Nomalized))
     # HDx
     for i in range(HDx_max - 1):
-        print('| %-6s | %12.3f Hz | %10.3f %s |'
-              % ('HD%2d' % (i + 2),
-                  fft_exact_hd_freqs[i], fft_hd_dbfs[i], Nomalized))
-    print('| ------ | --------------- | --------------- |')
+        report_strlist.append('| %-6s | %12.3f Hz | %10.3f %s |'
+                              % ('HD%2d' % (i + 2),
+                                 fft_exact_hd_freqs[i], fft_hd_dbfs[i], Nomalized))
+    report_strlist.append('| ------ | --------------- | --------------- |')
 
     # Spurious
-    print('| %-6s | %12.3f Hz | %10.3f %s |'
-          % ('SPUR', fft_spur_freq, fft_spur_dbfs, Nomalized))
-    print('| ------ | --------------- | --------------- |')
+    report_strlist.append('| %-6s | %12.3f Hz | %10.3f %s |'
+                          % ('SPUR', fft_spur_freq, fft_spur_dbfs, Nomalized))
+    report_strlist.append('| ------ | --------------- | --------------- |')
 
     # Power
-    print('| %-6s | %9.3f %s | %11.3f dBm |'
-          % (('Ps',)
-             + util.range_format(fft_signal_vrms, 'Vrms')
-             + (fft_signal_power,)))
-    print('| %-6s | %9.3f %s | %11.3f dBm |'
-          % (('Ph',)
-             + util.range_format(fft_thd_vrms, 'Vrms')
-             + (fft_thd_power,)))
-    print('| %-6s | %9.3f %s | %11.3f dBm |'
-          % (('Pn',)
-             + util.range_format(fft_noise_inband_vrms, 'Vrms')
-             + (fft_noise_inband_power,)))
-    print('| ------ | --------------- | --------------- |')
+    report_strlist.append('| %-6s | %9.3f %s | %11.3f dBm |'
+                          % (('Ps',)
+                             + util.range_format(fft_signal_vrms, 'Vrms')
+                             + (fft_signal_power,)))
+    report_strlist.append('| %-6s | %9.3f %s | %11.3f dBm |'
+                          % (('Ph',)
+                             + util.range_format(fft_thd_vrms, 'Vrms')
+                             + (fft_thd_power,)))
+    report_strlist.append('| %-6s | %9.3f %s | %11.3f dBm |'
+                          % (('Pn',)
+                             + util.range_format(fft_noise_inband_vrms, 'Vrms')
+                             + (fft_noise_inband_power,)))
+    report_strlist.append('| ------ | --------------- | --------------- |')
 
     # Perforance
     for key, value in perf_dict.items():
-        print('| %-6s | %9.3f %5s |' % ((key,) + value))
-    print('| ------ | --------------- |')
+        report_strlist.append('| %-6s | %9.3f %5s |' % ((key,) + value))
+    report_strlist.append('| ------ | --------------- |')
+
+    report_str='\n'.join(report_strlist)
+    if override_print is None:
+        print(report_str)
+    else:
+        override_print(report_str)
 
     # TEST CZT ZOOM RANGE
     # plt.figure('Test Spectrum', figsize=(8, 5))
@@ -345,11 +356,9 @@ def fftplot(signal, fs,
     # plt.plot(fft_freq, fft_mod, linewidth=1, color='black', alpha=0.9, zorder=100)
     # plt.xlim(bins_zoomed[0]/N*fs-3,bins_zoomed[-1]/N*fs+3)
 
-    if mpl_plot:
+    if axes is None:
         if PlotT or PlotSA or PlotSP:
             plt.show()
-            
-    return mpl_figs
 
 
 if __name__ == '__main__':

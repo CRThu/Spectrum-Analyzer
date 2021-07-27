@@ -1,6 +1,7 @@
-from tkinter.constants import BOTH, LEFT, TOP
-
+import os
+from tkinter.font import Font
 from matplotlib import pyplot
+from numpy.core.fromnumeric import size
 
 from fftplot import fftplot
 import tkinter as tk
@@ -16,6 +17,7 @@ class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
+        self.defaultdir = './'
         self.create_widgets()
 
     def _quit(self):
@@ -24,16 +26,22 @@ class Application(tk.Frame):
 
     def choose_datafile(self):
         fn = askopenfilename(
-            title='Please choose a data file.', initialdir='./')
+            title='Please choose a data file.', initialdir=self.defaultdir)
+        self.defaultdir=os.path.dirname(fn)
         self.filepath.set(fn)
 
     def update_canvas(self):
         self.fig.gca().clear()
+        self.gen_fig(self.fig.gca(), self.filepath.get())
         self.canvas.draw()
 
+    def update_tktext(self, text: tk.Text, s: str):
+        text.delete('1.0', tk.END)
+        text.insert(tk.INSERT, s)
+
     def create_widgets(self):
-        winWidth = 800
-        winHeight = 600
+        winWidth = 990
+        winHeight = 660
 
         screenWidth = self.master.winfo_screenwidth()
         screenHeight = self.master.winfo_screenheight()
@@ -46,8 +54,8 @@ class Application(tk.Frame):
         self.master.title("ADC Analysis GUI")
         self.master.rowconfigure(0, weight=1)
         self.master.rowconfigure(1, weight=3)
-        self.master.columnconfigure(0, weight=3)
-        self.master.columnconfigure(1, weight=1)
+        self.master.columnconfigure(0, weight=5)
+        self.master.columnconfigure(1, weight=3)
 
         self.frame1 = tk.Frame(self.master)
         self.frame2 = tk.Frame(self.master)
@@ -66,25 +74,24 @@ class Application(tk.Frame):
         self.frame1.columnconfigure(1, weight=1)
         self.frame1.columnconfigure(2, weight=1)
         self.frame1.columnconfigure(3, weight=5)
-        self.label_path = tk.Label(master=self.frame1, text="Path:").grid(
+        tk.Label(master=self.frame1, text="Path:").grid(
             row=0, column=0, padx=10, pady=10, sticky=tk.W)
-        self.textbox_path = tk.Entry(master=self.frame1, textvariable=self.filepath).grid(
+        tk.Entry(master=self.frame1, textvariable=self.filepath).grid(
             row=0, column=1, padx=10, pady=10, columnspan=3, sticky=tk.EW)
-        self.label_params = tk.Label(master=self.frame1, text="Params:").grid(
+        tk.Label(master=self.frame1, text="Params:").grid(
             row=1, column=0, padx=10, pady=10, sticky=tk.W)
-        self.textbox_params = tk.Entry(master=self.frame1,).grid(
+        tk.Entry(master=self.frame1,).grid(
             row=1, column=1, padx=10, pady=10, columnspan=3, sticky=tk.EW)
-        self.button_openfile = tk.Button(master=self.frame1, text="Open",
-                                         command=lambda: self.choose_datafile()).grid(
+        tk.Button(master=self.frame1, text="Open",
+                  command=lambda: self.choose_datafile()).grid(
             row=2, column=0, padx=10, pady=10, sticky=tk.EW)
-        self.button_update = tk.Button(master=self.frame1, text="Update",
-                                       command=lambda: self.update_canvas()).grid(
+        tk.Button(master=self.frame1, text="Update",
+                  command=lambda: self.update_canvas()).grid(
             row=2, column=1, padx=10, pady=10, sticky=tk.EW)
 
         # FRAME2
         # pack_toolbar=False will make it easier to use a layout manager later on.
-        self.fig = self.gen_fig()
-        #self.fig = self.init_fig()
+        self.fig = self.init_fig()
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame2)
         self.canvas.draw()
         toolbar = NavigationToolbar2Tk(
@@ -92,44 +99,38 @@ class Application(tk.Frame):
         toolbar.update()
 
         toolbar.pack(expand=1, fill=tk.X)
-        self.canvas.get_tk_widget().pack(expand=1, fill=tk.BOTH)
+        self.canvas.get_tk_widget().pack(padx=10, pady=10, expand=1, fill=tk.BOTH)
 
         # FRAME3
-        button = tk.Button(master=self.frame3, text="Quit",
-                           command=lambda: self._quit())
-
-        button.pack()
+        self.reporttext = tk.Text(master=self.frame3)
+        self.reporttext.pack(padx=10, pady=10, expand=1, fill=tk.BOTH)
+        tk.Button(master=self.frame3, text="Quit",
+                  command=lambda: self._quit()).pack(padx=10, pady=10)
 
     def init_fig(self):
         fig = pyplot.figure(figsize=(8, 5))
         ax = fig.gca()
         ax.set_title('Init Figure', fontsize=16)
         ax.grid(True, which='both')
-        ax.plot([0,1,2,3,4,5])
+        ax.plot([0, 1, 2, 3, 4, 5])
         return fig
 
-    # for test
-    def gen_fig(self):
+    def gen_fig(self, axes, filepath):
         fs = 200000
         FS = 10  # +/-10V
 
         vbias = 0
         Zoom_fin = 1000
 
-        path = './data/'
-        filename = 'AD7606_TestData_88d69'
-        ext = '.txt'
-
-        adc_sample = dec.data_decode(path + filename + ext, base='hex',
+        adc_sample = dec.data_decode(filepath, base='hex',
                                      encode='offset', adc_bits=16, FS=FS, vbias=vbias)
 
-        figs = f.fftplot(signal=adc_sample, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
-                         Zoom='Part', Zoom_fin=Zoom_fin,
-                         HDx_max=5,
-                         PlotT=False, PlotSA=True, PlotSP=False,
-                         mpl_plot=False)
+        f.fftplot(signal=adc_sample, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
+                  Zoom='Part', Zoom_fin=Zoom_fin,
+                  HDx_max=5,
+                  PlotT=False, PlotSA=True, PlotSP=False,
+                  axes=axes, override_print=lambda s: self.update_tktext(self.reporttext, s))
 
-        return figs[0]
 
 if __name__ == '__main__':
     win = tk.Tk()
