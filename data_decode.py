@@ -8,7 +8,7 @@ import numpy as np
 # encode: offset/comp
 # TODO encode:comp
 def data_decode(filename, split='', base='hex', encode='offset',
-               adc_bits=16, FS=5, vbias=0):
+                adcbits=16, fullscale=5, vbias=0):
     # Read file without blank
     with open(filename, 'r') as f:
         adc_data_strs = f.read().replace(' ', '')
@@ -40,10 +40,10 @@ def data_decode(filename, split='', base='hex', encode='offset',
     # encode
     assert encode == 'offset'
     if encode == 'offset':
-        adc_data -= 2 ** (adc_bits - 1)
+        adc_data -= 2 ** (adcbits - 1)
 
     # convert voltage
-    adc_data *= FS / 2 ** adc_bits
+    adc_data *= fullscale / 2 ** adcbits
     adc_data += vbias
     return adc_data
 
@@ -51,6 +51,6 @@ def data_decode(filename, split='', base='hex', encode='offset',
 if __name__ == '__main__':
     print('analysis_util')
     adc_data = data_decode('./TestData_88d69.txt', base='hex',
-                          encode='offset', adc_bits=16, FS=10, vbias=0)
+                           encode='offset', adcbits=16, fullscale=10, vbias=0)
     print('Data length = %d, Range = [%f,%f]' % (
         len(adc_data), np.min(adc_data), np.max(adc_data)))

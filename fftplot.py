@@ -15,33 +15,33 @@ import fftwin
 info = {
     'name': 'SPECTRUM ANALYZER PROGRAM',
     'project': '202116A',
-    'version': '2.0',
+    'version': '2.4',
     'release': 'beta',
     'author': 'programed by carrot',
 }
 
 
-def fftplot(signal, fs,
-            noise_band=None, spurious_existed_freqs=((),),
+def fftplot(signal, samplerate,
+            noiseband=None, spurious_existed_freqs=((),),
             Wave='Raw',
-            Zoom='All', Zoom_fin=None, Zoom_period=3,
-            Nomalized='dBFS', FS=None,
-            Window='HFT248D',
+            zoom='All', zoom_expfin=None, zoom_period=3,
+            Nomalized='dBFS', fullscale=None,
+            window='HFT248D',
             czt_zoom_window='blackmanharris', czt_zoom_ratio=10,
-            Noise_corr=True,
+            noise_corr=True,
             PlotT=True, PlotSA=True, PlotSP=True,
             HDx_max=9,
-            dBm_Z=600,
-            axes:plt.Axes=None, override_print=None
+            impedance=600,
+            axes: plt.Axes = None, override_print=None
             ):
 
     # TODO add dBm
     assert Nomalized == 'dBFS'
     assert Nomalized != 'dBm'
     # TODO Recalc Window CPG
-    assert Window != 'flattop'
+    assert window != 'flattop'
 
-    FS_Vamp = util.vpp2vamp(FS)
+    FS_Vamp = util.vpp2vamp(fullscale)
 
     N = len(signal)
     half_N = int(N / 2) + 1
@@ -94,8 +94,8 @@ def fftplot(signal, fs,
 
     # Window
     #winN = wd.blackmanharris(N)
-    if fftwin.has_window(Window):
-        winN = fftwin.get_window(Window, N)
+    if fftwin.has_window(window):
+        winN = fftwin.get_window(window, N)
 
     signal_win = winN * signal
 
@@ -104,7 +104,7 @@ def fftplot(signal, fs,
     signal_fft = signal_fft[range(half_N)]
 
     #fft_k = np.arange(half_N)
-    fft_freq = np.linspace(0, fs / 2, half_N)
+    fft_freq = np.linspace(0, samplerate / 2, half_N)
 
     fft_mod = np.abs(signal_fft)
     fft_phase = np.angle(signal_fft)
@@ -115,7 +115,7 @@ def fftplot(signal, fs,
 
     # dBFS Calc
     fft_mod_dbfs = np.zeros(half_N)
-    assert FS > 0
+    assert fullscale > 0
     # Nomalized : FS
     fft_mod_dbfs = fft_mod / FS_Vamp
     # Nomalized : dB
@@ -124,7 +124,7 @@ def fftplot(signal, fs,
     ### ANALYSIS ###
     # Generate Mask bins
     fft_mod_len = len(fft_mod)
-    current_window_mainlobe = fftwin.get_window_mainlobe_width(window=Window)
+    current_window_mainlobe = fftwin.get_window_mainlobe_width(window=window)
     # mask_bins_dc : [DC : DC + L]
     mask_bins_dc = util.mask_bins_gen(
         [0], current_window_mainlobe, fft_mod_len)
@@ -151,7 +151,7 @@ def fftplot(signal, fs,
     # Signal
     fft_signal_bin = guess_signal_bin
     fft_signal_freq = fft_freq[guess_signal_bin]
-    fft_exact_signal_freq = guess_exact_signal_bin / N * fs
+    fft_exact_signal_freq = guess_exact_signal_bin / N * samplerate
     fft_signal_amp = fft_mod[guess_signal_bin]
     fft_signal_dbfs = fft_mod_dbfs[guess_signal_bin]
 
@@ -160,7 +160,7 @@ def fftplot(signal, fs,
     # TODO: Find peak power around distortion
     fft_hd_bins = guess_hd_bins
     fft_hd_freqs = [fft_freq[x] for x in fft_hd_bins]
-    fft_exact_hd_freqs = guess_exact_hd_bins / N * fs
+    fft_exact_hd_freqs = guess_exact_hd_bins / N * samplerate
     fft_hd_amps = [fft_mod[x] for x in fft_hd_bins]
     fft_hd_dbfs = [fft_mod_dbfs[x] for x in fft_hd_bins]
 
@@ -169,8 +169,8 @@ def fftplot(signal, fs,
     spurious_existed_bins = ((),)
     for spurious_existed_freq in spurious_existed_freqs:
         if len(spurious_existed_freq) == 2:
-            spurious_existed_bins += ((int(spurious_existed_freq[0] / (fs / N)),
-                                       int(spurious_existed_freq[1] / (fs / N))),)
+            spurious_existed_bins += ((int(spurious_existed_freq[0] / (samplerate / N)),
+                                       int(spurious_existed_freq[1] / (samplerate / N))),)
     # Peak Harmonic distortion or Spurious Noise
     # Calc peak power except [DC : DC + L], [Signal - L : Signal + L]
     fft_mod_spur = util.mask_array(
@@ -185,36 +185,37 @@ def fftplot(signal, fs,
     fft_mod_noise = util.mask_array(
         fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd + spurious_existed_bins)
     # Noise Correction for mask
-    if Noise_corr == True:
+    if noise_corr:
         fft_mod_noise_mid = np.median(fft_mod_noise)
         fft_mod_noise = util.mask_array(
             fft_mod, mask_bins_dc + mask_bins_signal + mask_bins_hd + spurious_existed_bins, fill=fft_mod_noise_mid)
 
     # noise_band
     fft_mod_noise_inband = fft_mod_noise[:]
-    if noise_band is not None:
-        fft_mod_noise_inband = fft_mod_noise[:int(noise_band / fs * N) + 1]
+    if noiseband is not None:
+        fft_mod_noise_inband = fft_mod_noise[:int(
+            noiseband / samplerate * N) + 1]
     fft_noise_inband_amp = np.linalg.norm(fft_mod_noise_inband)
     # Pn_true = Pn - ENBW
-    fft_noise_inband_amp /= fftwin.get_window_ENBW(Window) ** 0.5
+    fft_noise_inband_amp /= fftwin.get_window_ENBW(window) ** 0.5
 
     # Power
     # Signal
     fft_signal_vrms = util.vamp2vrms(fft_signal_amp)
-    fft_signal_power = util.vamp2dbm(fft_signal_amp, Z=dBm_Z)
+    fft_signal_power = util.vamp2dbm(fft_signal_amp, Z=impedance)
 
     # Total Harmonic Distortion
     fft_thd_amp = np.linalg.norm(fft_hd_amps)
     fft_thd_vrms = util.vamp2vrms(fft_thd_amp)
-    fft_thd_power = util.vamp2dbm(fft_thd_amp, Z=dBm_Z)
+    fft_thd_power = util.vamp2dbm(fft_thd_amp, Z=impedance)
 
     # Noise
     fft_noise_inband_vrms = util.vamp2vrms(fft_noise_inband_amp)
-    fft_noise_inband_power = util.vamp2dbm(fft_noise_inband_amp, Z=dBm_Z)
+    fft_noise_inband_power = util.vamp2dbm(fft_noise_inband_amp, Z=impedance)
 
     # Performance
     perf_dict = util.perf_calc(
-        FS=FS,
+        FS=fullscale,
         vs=fft_signal_amp,
         vd=fft_thd_amp,
         vn=fft_noise_inband_amp,
@@ -237,17 +238,18 @@ def fftplot(signal, fs,
         ax.set_xlabel('Samples')
         ax.set_ylabel('Voltage')
         ax.grid(True, which='both')
-        if Zoom == 'All':
+        if zoom == 'All':
             if Wave == 'Raw':
                 #ax.plot(signal_k, signal, linewidth = 1, marker = '.', markersize = 2)
                 ax.plot(signal_k, signal, linewidth=1)
             elif Wave == 'Windowed':
                 ax.plot(signal_k, signal_win,
                         linewidth=1, marker='.', markersize=2)
-        elif Zoom == 'Part':
-            assert Zoom_fin > 0
-            ax.plot(signal_k[range(round(fs / Zoom_fin * Zoom_period))],
-                    signal[range(round(fs / Zoom_fin * Zoom_period))],
+        elif zoom == 'Part':
+            assert zoom_expfin > 0
+            ax.plot(signal_k[range(round(samplerate / zoom_expfin * zoom_period))],
+                    signal[range(
+                        round(samplerate / zoom_expfin * zoom_period))],
                     linewidth=1, marker='.', markersize=2)
 
     if PlotSA == True:
@@ -262,7 +264,7 @@ def fftplot(signal, fs,
         ax.set_ylabel(Nomalized)
         ax.grid(True, which='both')
         # ax.set_xscale('log')
-        ax.set_xscale('symlog', linthresh=fs / 10)
+        ax.set_xscale('symlog', linthresh=samplerate / 10)
         #ax.plot(fft_freq, fft_mod_dbfs, linewidth = 1, marker = '.', markersize = 3)
         ax.plot(fft_freq, fft_mod_dbfs, linewidth=1, alpha=0.9, zorder=100)
         if Nomalized == 'dBFS':
@@ -340,7 +342,7 @@ def fftplot(signal, fs,
         report_strlist.append('| %-6s | %9.3f %5s |' % ((key,) + value))
     report_strlist.append('| ------ | --------------- |')
 
-    report_str='\n'.join(report_strlist)
+    report_str = '\n'.join(report_strlist)
     if override_print is None:
         print(report_str)
     else:
@@ -398,6 +400,6 @@ if __name__ == '__main__':
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'flattop')
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D')
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
-    fftplot(signal=adcout, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
-            Zoom='Part', Zoom_fin=Wave_freq,  # noise_band=0.5 * fs / 2,
+    fftplot(signal=adcout, samplerate=fs, Nomalized='dBFS', fullscale=FS, window='HFT248D',
+            zoom='Part', zoom_expfin=Wave_freq,  # noise_band=0.5 * fs / 2,
             PlotT=True, PlotSA=True, PlotSP=False)

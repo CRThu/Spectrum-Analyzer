@@ -123,10 +123,10 @@ class Application(tk.Frame):
         Zoom_fin = 1000
 
         adc_sample = dec.data_decode(filepath, base='hex',
-                                     encode='offset', adc_bits=16, FS=FS, vbias=vbias)
+                                     encode='offset', adcbits=16, fullscale=FS, vbias=vbias)
 
-        f.fftplot(signal=adc_sample, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
-                  Zoom='Part', Zoom_fin=Zoom_fin,
+        f.fftplot(signal=adc_sample, samplerate=fs, Nomalized='dBFS', fullscale=FS, window='HFT248D',
+                  zoom='Part', zoom_expfin=Zoom_fin,
                   HDx_max=5,
                   PlotT=False, PlotSA=True, PlotSP=False,
                   axes=axes, override_print=lambda s: self.update_tktext(self.reporttext, s))

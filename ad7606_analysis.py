@@ -21,9 +21,9 @@ if __name__ == '__main__':
     # ext = '.txt'
 
     adc_sample = dec.data_decode(path + filename + ext, base='hex',
-                                 encode='offset', adc_bits=16, FS=FS, vbias=vbias)
+                                 encode='offset', adcbits=16, fullscale=FS, vbias=vbias)
 
-    f.fftplot(signal=adc_sample, fs=fs, Nomalized='dBFS', FS=FS, Window='HFT248D',
-              Zoom='Part', Zoom_fin=Zoom_fin,
+    f.fftplot(signal=adc_sample, samplerate=fs, Nomalized='dBFS', fullscale=FS, window='HFT248D',
+              zoom='Part', zoom_expfin=Zoom_fin,
               HDx_max=5,
               PlotT=True, PlotSA=True, PlotSP=False)

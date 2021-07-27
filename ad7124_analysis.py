@@ -25,12 +25,12 @@ if __name__ == '__main__':
     
 
     adc_sample = dec.data_decode(filename=file, base='dec',
-                                encode='offset', adc_bits=24, FS=FS, vbias=vbias)
+                                encode='offset', adcbits=24, fullscale=FS, vbias=vbias)
 
     print('Data length = %d, Range = [%f,%f]' % (
         len(adc_sample), np.min(adc_sample), np.max(adc_sample)))
 
-    f.fftplot(signal=adc_sample, fs=fs, Nomalized='dBFS', FS=FS, Window=window,
-              Zoom='Part', Zoom_fin=Zoom_fin,
+    f.fftplot(signal=adc_sample, samplerate=fs, Nomalized='dBFS', fullscale=FS, window=window,
+              zoom='Part', zoom_expfin=Zoom_fin,
               HDx_max=20,
               PlotT=True, PlotSA=True, PlotSP=False)
