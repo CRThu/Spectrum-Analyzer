@@ -3,5 +3,6 @@
         "--ignore=E302"
     ],
     "python.pythonPath": "C:\\Users\\carrot\\anaconda3\\python.exe",
-    "jupyter.jupyterServerType": "local"
+    "jupyter.jupyterServerType": "local",
+    "terminal.integrated.defaultProfile.windows": "PowerShell"
 }

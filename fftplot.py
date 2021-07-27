@@ -1,5 +1,4 @@
 import math
-import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,7 +31,9 @@ def fftplot(signal, fs,
             Noise_corr=True,
             PlotT=True, PlotSA=True, PlotSP=True,
             HDx_max=9,
-            dBm_Z=600):
+            dBm_Z=600,
+            mpl_plot=True
+            ):
 
     # TODO add dBm
     assert Nomalized == 'dBFS'
@@ -220,6 +221,7 @@ def fftplot(signal, fs,
         vspur=fft_spur_amp)
 
     ### GUI ###
+    mpl_figs = []
     # GUI Config
     mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei']
     mpl.rcParams['axes.unicode_minus'] = False
@@ -227,67 +229,73 @@ def fftplot(signal, fs,
 
     if PlotT == True:
         # Time Domain Plot
-        plt.figure('Time', figsize=(8, 5))
-        plt.title('Time')
-        plt.xlabel('Samples')
-        plt.ylabel('Voltage')
-        plt.grid(True, which='both')
+        fig = plt.figure(figsize=(8, 5))
+        ax = fig.gca()
+        ax.set_title('Time', fontsize=16)
+        ax.set_xlabel('Samples')
+        ax.set_ylabel('Voltage')
+        ax.grid(True, which='both')
         if Zoom == 'All':
             if Wave == 'Raw':
-                #plt.plot(signal_k, signal, linewidth = 1, marker = '.', markersize = 2)
-                plt.plot(signal_k, signal, linewidth=1)
+                #ax.plot(signal_k, signal, linewidth = 1, marker = '.', markersize = 2)
+                ax.plot(signal_k, signal, linewidth=1)
             elif Wave == 'Windowed':
-                plt.plot(signal_k, signal_win,
-                         linewidth=1, marker='.', markersize=2)
+                ax.plot(signal_k, signal_win,
+                        linewidth=1, marker='.', markersize=2)
         elif Zoom == 'Part':
             assert Zoom_fin > 0
-            plt.plot(signal_k[range(round(fs / Zoom_fin * Zoom_period))],
-                     signal[range(round(fs / Zoom_fin * Zoom_period))],
-                     linewidth=1, marker='.', markersize=2)
+            ax.plot(signal_k[range(round(fs / Zoom_fin * Zoom_period))],
+                    signal[range(round(fs / Zoom_fin * Zoom_period))],
+                    linewidth=1, marker='.', markersize=2)
+        mpl_figs.append(fig)
 
     if PlotSA == True:
         # Magnitude Spectrum Plot
-        plt.figure('Magnitude Spectrum', figsize=(8, 5))
-        plt.title('Magnitude Spectrum')
-        plt.xlabel('Frequency')
-        plt.ylabel(Nomalized)
-        plt.grid(True, which='both')
-        # plt.xscale('log')
-        plt.xscale('symlog', linthresh=fs / 10)
-        #plt.plot(fft_freq, fft_mod_dbfs, linewidth = 1, marker = '.', markersize = 3)
-        plt.plot(fft_freq, fft_mod_dbfs, linewidth=1, alpha=0.9, zorder=100)
+        fig = plt.figure(figsize=(8, 5))
+        ax = fig.gca()
+        ax.set_title('Magnitude Spectrum', fontsize=16)
+        ax.set_xlabel('Frequency')
+        ax.set_ylabel(Nomalized)
+        ax.grid(True, which='both')
+        # ax.set_xscale('log')
+        ax.set_xscale('symlog', linthresh=fs / 10)
+        #ax.plot(fft_freq, fft_mod_dbfs, linewidth = 1, marker = '.', markersize = 3)
+        ax.plot(fft_freq, fft_mod_dbfs, linewidth=1, alpha=0.9, zorder=100)
         if Nomalized == 'dBFS':
-            _, dBFS_top = plt.ylim()
+            _, dBFS_top = ax.set_ylim()
             if dBFS_top < 0:
-                plt.ylim(top=1)
+                ax.set_ylim(top=1)
 
         # Marker
         # Signal & HDx
         colors = np.random.rand(HDx_max)
-        plt.scatter(np.append([fft_exact_signal_freq, ], fft_exact_hd_freqs), np.append([fft_signal_dbfs, ], fft_hd_dbfs),
-                    s=100, c=colors, alpha=1, marker='x', zorder=101)
-        plt.text(fft_exact_signal_freq, fft_signal_dbfs, '%.3f Hz, %.3f %s'
-                 % (fft_exact_signal_freq, fft_signal_dbfs, Nomalized), zorder=102)
+        ax.scatter(np.append([fft_exact_signal_freq, ], fft_exact_hd_freqs), np.append([fft_signal_dbfs, ], fft_hd_dbfs),
+                   s=100, c=colors, alpha=1, marker='x', zorder=101)
+        ax.text(fft_exact_signal_freq, fft_signal_dbfs, '%.3f Hz, %.3f %s'
+                % (fft_exact_signal_freq, fft_signal_dbfs, Nomalized), zorder=102)
         # Spur
         colors = np.random.rand(1)
-        plt.scatter(fft_spur_freq, fft_spur_dbfs,
-                    s=100, c=colors, alpha=1, marker='+', zorder=103)
+        ax.scatter(fft_spur_freq, fft_spur_dbfs,
+                   s=100, c=colors, alpha=1, marker='+', zorder=103)
+        mpl_figs.append(fig)
 
     if PlotSP == True:
         # Phase Spectrum Plot
-        plt.figure('Phase Spectrum', figsize=(8, 5))
-        plt.title('Phase Spectrum')
-        plt.xlabel('Frequency')
-        plt.ylabel('Phase')
-        plt.grid(True, which='both')
-        # plt.xscale('log')
-        #plt.xscale('symlog', linthreshx = 0.01)
-        #plt.plot(fft_freq, fft_phase / math.pi, linewidth = 1, marker = '.', markersize = 3)
-        plt.plot(fft_freq, fft_phase / math.pi, linewidth=1)
+        fig = plt.figure(figsize=(8, 5))
+        ax = fig.gca()
+        ax.set_title('Phase Spectrum', fontsize=16)
+        ax.set_xlabel('Frequency')
+        ax.set_ylabel('Phase')
+        ax.grid(True, which='both')
+        # ax.set_xscale('log')
+        #ax.set_xscale('symlog', linthreshx = 0.01)
+        #ax.plot(fft_freq, fft_phase / math.pi, linewidth = 1, marker = '.', markersize = 3)
+        ax.plot(fft_freq, fft_phase / math.pi, linewidth=1)
         ymajorLocator = MultipleLocator(0.05 * math.pi)
         ymajorFormatter = FormatStrFormatter('%5.2f π')
-        plt.gca().yaxis.set_major_locator(ymajorLocator)
-        plt.gca().yaxis.set_major_formatter(ymajorFormatter)
+        ax.yaxis.set_major_locator(ymajorLocator)
+        ax.yaxis.set_major_formatter(ymajorFormatter)
+        mpl_figs.append(fig)
 
     ### REPORT ###
     # Report
@@ -337,10 +345,11 @@ def fftplot(signal, fs,
     # plt.plot(fft_freq, fft_mod, linewidth=1, color='black', alpha=0.9, zorder=100)
     # plt.xlim(bins_zoomed[0]/N*fs-3,bins_zoomed[-1]/N*fs+3)
 
-    if PlotT or PlotSA or PlotSP:
-        plt.show(block=False)
-        input("Press [enter] to continue.")
-        plt.close('all')
+    if mpl_plot:
+        if PlotT or PlotSA or PlotSP:
+            plt.show()
+            
+    return mpl_figs
 
 
 if __name__ == '__main__':

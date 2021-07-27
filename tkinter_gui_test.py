@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter.constants import BOTH
 
 class Application(tk.Frame):
     def __init__(self, master=None):
@@ -28,17 +29,17 @@ class Application(tk.Frame):
         self.frame2 = tk.Frame(self.master)
         self.frame3 = tk.Frame(self.master)
 
-        self.label1 = tk.Button(self.frame1,text="Frame1",bg='yellow').pack()
-        self.label2 = tk.Button(self.frame2,text="Frame2",bg='green').pack()
-        self.label3 = tk.Button(self.frame3,text="Frame3",bg='blue').pack()
+        self.label1 = tk.Button(self.frame1,text="Frame1",bg='yellow').pack(expand=False,fill=BOTH)
+        self.label2 = tk.Button(self.frame2,text="Frame2",bg='green').pack(expand=True,fill=BOTH)
+        self.label3 = tk.Button(self.frame3,text="Frame3",bg='blue').pack(expand=True,fill=BOTH)
 
-        # self.frame1.grid(row=0,columnspan=5,sticky=tk.NSEW)
-        # self.frame2.grid(column=1, row=1,sticky=tk.NSEW)
-        # self.frame3.grid(column=2, row=2,sticky=tk.NSEW)
+        self.frame1.grid(column=0,row=0,columnspan=2,sticky=tk.NSEW)
+        self.frame2.grid(column=0,row=1,sticky=tk.NSEW)
+        self.frame3.grid(column=1,row=1,sticky=tk.NSEW)
         
-        tk.Button(self.master,text='0,0').grid(column=0,row=0,columnspan=2,sticky=tk.NSEW)
-        tk.Button(self.master,text='0,1').grid(column=0,row=1,sticky=tk.NSEW)
-        tk.Button(self.master,text='1,1').grid(column=1,row=1,sticky=tk.NSEW)
+        # tk.Button(self.master,text='0,0').grid(column=0,row=0,columnspan=2,sticky=tk.NSEW)
+        # tk.Button(self.master,text='0,1').grid(column=0,row=1,sticky=tk.NSEW)
+        # tk.Button(self.master,text='1,1').grid(column=1,row=1,sticky=tk.NSEW)
 
     def say_hi(self):
         print("hi there, everyone!")
