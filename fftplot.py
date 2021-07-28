@@ -15,29 +15,28 @@ import fftwin
 info = {
     'name': 'SPECTRUM ANALYZER PROGRAM',
     'project': '202116A',
-    'version': '2.4',
+    'version': '2.5',
     'release': 'beta',
     'author': 'programed by carrot',
 }
-
 
 def fftplot(signal, samplerate,
             noiseband=None, spurious_existed_freqs=((),),
             Wave='Raw',
             zoom='All', zoom_expfin=None, zoom_period=3,
-            Nomalized='dBFS', fullscale=None,
+            nomalized='dBFS', fullscale=None,
             window='HFT248D',
             czt_zoom_window='blackmanharris', czt_zoom_ratio=10,
             noise_corr=True,
-            PlotT=True, PlotSA=True, PlotSP=True,
+            PlotT=False, PlotSA=True, PlotSP=False,
             HDx_max=9,
             impedance=600,
             axes: plt.Axes = None, override_print=None
             ):
 
     # TODO add dBm
-    assert Nomalized == 'dBFS'
-    assert Nomalized != 'dBm'
+    assert nomalized == 'dBFS'
+    assert nomalized != 'dBm'
     # TODO Recalc Window CPG
     assert window != 'flattop'
 
@@ -261,13 +260,13 @@ def fftplot(signal, samplerate,
             ax = axes
         ax.set_title('Magnitude Spectrum', fontsize=16)
         ax.set_xlabel('Frequency')
-        ax.set_ylabel(Nomalized)
+        ax.set_ylabel(nomalized)
         ax.grid(True, which='both')
         # ax.set_xscale('log')
         ax.set_xscale('symlog', linthresh=samplerate / 10)
         #ax.plot(fft_freq, fft_mod_dbfs, linewidth = 1, marker = '.', markersize = 3)
         ax.plot(fft_freq, fft_mod_dbfs, linewidth=1, alpha=0.9, zorder=100)
-        if Nomalized == 'dBFS':
+        if nomalized == 'dBFS':
             _, dBFS_top = ax.set_ylim()
             if dBFS_top < 0:
                 ax.set_ylim(top=1)
@@ -278,7 +277,7 @@ def fftplot(signal, samplerate,
         ax.scatter(np.append([fft_exact_signal_freq, ], fft_exact_hd_freqs), np.append([fft_signal_dbfs, ], fft_hd_dbfs),
                    s=100, c=colors, alpha=1, marker='x', zorder=101)
         ax.text(fft_exact_signal_freq, fft_signal_dbfs, '%.3f Hz, %.3f %s'
-                % (fft_exact_signal_freq, fft_signal_dbfs, Nomalized), zorder=102)
+                % (fft_exact_signal_freq, fft_signal_dbfs, nomalized), zorder=102)
         # Spur
         colors = np.random.rand(1)
         ax.scatter(fft_spur_freq, fft_spur_dbfs,
@@ -309,17 +308,17 @@ def fftplot(signal, samplerate,
     report_strlist.append('| ------ | --------------- | --------------- |')
     # Base
     report_strlist.append('| %-6s | %12.3f Hz | %10.3f %s |'
-                          % ('BASE', fft_exact_signal_freq, fft_signal_dbfs, Nomalized))
+                          % ('BASE', fft_exact_signal_freq, fft_signal_dbfs, nomalized))
     # HDx
     for i in range(HDx_max - 1):
         report_strlist.append('| %-6s | %12.3f Hz | %10.3f %s |'
                               % ('HD%2d' % (i + 2),
-                                 fft_exact_hd_freqs[i], fft_hd_dbfs[i], Nomalized))
-    report_strlist.append('| ------ | --------------- | --------------- |')
+                                 fft_exact_hd_freqs[i], fft_hd_dbfs[i], nomalized))
+    # report_strlist.append('| ------ | --------------- | --------------- |')
 
     # Spurious
     report_strlist.append('| %-6s | %12.3f Hz | %10.3f %s |'
-                          % ('SPUR', fft_spur_freq, fft_spur_dbfs, Nomalized))
+                          % ('SPUR', fft_spur_freq, fft_spur_dbfs, nomalized))
     report_strlist.append('| ------ | --------------- | --------------- |')
 
     # Power
@@ -400,6 +399,6 @@ if __name__ == '__main__':
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'flattop')
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D')
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
-    fftplot(signal=adcout, samplerate=fs, Nomalized='dBFS', fullscale=FS, window='HFT248D',
+    fftplot(signal=adcout, samplerate=fs, nomalized='dBFS', fullscale=FS, window='HFT248D',
             zoom='Part', zoom_expfin=Wave_freq,  # noise_band=0.5 * fs / 2,
             PlotT=True, PlotSA=True, PlotSP=False)

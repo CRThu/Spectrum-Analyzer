@@ -1,38 +1,56 @@
+from cmd_parse import DATA_DECODE_ARGS, FFTPLOT_ARGS, args_filter, cmd_parse
 import os
-from tkinter.font import Font
 from matplotlib import pyplot
-from numpy.core.fromnumeric import size
-
-from fftplot import fftplot
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                NavigationToolbar2Tk)
-import numpy as np
-
 import data_decode as dec
 import fftplot as f
+
+
+# --fullscale=10 --base=hex --encode=offset --adcbits=16 --vbias=0 --samplerate=200000 --nomalized=dBFS --window=HFT248D --zoom=Part --fin=1000 --hdmax=5 --plottime=False --plotspectrum=True --plotphase=False --impedance=600
 
 class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
         self.defaultdir = './'
+        self.default_argvs = '--base=hex --adcbits=16 --fullscale=10 --samplerate=200000 --hdmax=5 --window=HFT248D'
         self.create_widgets()
 
     def _quit(self):
         self.master.quit()
         self.master.destroy()
 
+    def bind_rightkeyevent(self, root, control):
+        control.bind(
+            "<Button-3>", lambda event: self.rightkeyevent(event, root, control))
+
+    def rightkeyevent(self, event, master, control):
+        menu = tk.Menu(master, tearoff=False)
+        menu.delete(0, tk.END)
+        menu.add_command(
+            label='Cut', command=lambda: control.event_generate("<<Cut>>"))
+        menu.add_command(
+            label='Copy', command=lambda: control.event_generate("<<Copy>>"))
+        menu.add_command(
+            label='Paste', command=lambda: control.event_generate('<<Paste>>'))
+        menu.post(event.x_root, event.y_root)
+
     def choose_datafile(self):
         fn = askopenfilename(
             title='Please choose a data file.', initialdir=self.defaultdir)
-        self.defaultdir=os.path.dirname(fn)
+        self.defaultdir = os.path.dirname(fn)
         self.filepath.set(fn)
 
     def update_canvas(self):
+        argvs_dict = cmd_parse(self.argvs.get())
+        if 'filepath' not in argvs_dict:
+            argvs_dict['filepath'] = self.filepath.get()
+        # print(argvs_dict)
         self.fig.gca().clear()
-        self.gen_fig(self.fig.gca(), self.filepath.get())
+        self.gen_fig(self.fig.gca(), argvs_dict)
         self.canvas.draw()
 
     def update_tktext(self, text: tk.Text, s: str):
@@ -41,7 +59,7 @@ class Application(tk.Frame):
 
     def create_widgets(self):
         winWidth = 990
-        winHeight = 660
+        winHeight = 900
 
         screenWidth = self.master.winfo_screenwidth()
         screenHeight = self.master.winfo_screenheight()
@@ -70,17 +88,19 @@ class Application(tk.Frame):
 
         # FRAME1
         self.filepath = tk.StringVar()
+        self.argvs = tk.StringVar(value=self.default_argvs)
         self.frame1.columnconfigure(0, weight=1)
         self.frame1.columnconfigure(1, weight=1)
         self.frame1.columnconfigure(2, weight=1)
         self.frame1.columnconfigure(3, weight=5)
+
         tk.Label(master=self.frame1, text="Path:").grid(
             row=0, column=0, padx=10, pady=10, sticky=tk.W)
         tk.Entry(master=self.frame1, textvariable=self.filepath).grid(
             row=0, column=1, padx=10, pady=10, columnspan=3, sticky=tk.EW)
         tk.Label(master=self.frame1, text="Params:").grid(
             row=1, column=0, padx=10, pady=10, sticky=tk.W)
-        tk.Entry(master=self.frame1,).grid(
+        tk.Entry(master=self.frame1, textvariable=self.argvs).grid(
             row=1, column=1, padx=10, pady=10, columnspan=3, sticky=tk.EW)
         tk.Button(master=self.frame1, text="Open",
                   command=lambda: self.choose_datafile()).grid(
@@ -99,13 +119,14 @@ class Application(tk.Frame):
         toolbar.update()
 
         toolbar.pack(expand=1, fill=tk.X)
-        self.canvas.get_tk_widget().pack(padx=10, pady=10, expand=1, fill=tk.BOTH)
+        self.canvas.get_tk_widget().pack(padx=10, pady=10,expand=1, fill=tk.BOTH)
 
         # FRAME3
         self.reporttext = tk.Text(master=self.frame3)
         self.reporttext.pack(padx=10, pady=10, expand=1, fill=tk.BOTH)
+        self.bind_rightkeyevent(self.frame3, self.reporttext)
         tk.Button(master=self.frame3, text="Quit",
-                  command=lambda: self._quit()).pack(padx=10, pady=10)
+                  command=lambda: self._quit()).pack(ipadx=10,padx=10, pady=10)
 
     def init_fig(self):
         fig = pyplot.figure(figsize=(8, 5))
@@ -115,21 +136,13 @@ class Application(tk.Frame):
         ax.plot([0, 1, 2, 3, 4, 5])
         return fig
 
-    def gen_fig(self, axes, filepath):
-        fs = 200000
-        FS = 10  # +/-10V
+    def gen_fig(self, axes, args: dict):
+        data_decode_kwargs = args_filter(args, DATA_DECODE_ARGS)
+        adc_sample = dec.data_decode(**data_decode_kwargs)
 
-        vbias = 0
-        Zoom_fin = 1000
-
-        adc_sample = dec.data_decode(filepath, base='hex',
-                                     encode='offset', adcbits=16, fullscale=FS, vbias=vbias)
-
-        f.fftplot(signal=adc_sample, samplerate=fs, Nomalized='dBFS', fullscale=FS, window='HFT248D',
-                  zoom='Part', zoom_expfin=Zoom_fin,
-                  HDx_max=5,
-                  PlotT=False, PlotSA=True, PlotSP=False,
-                  axes=axes, override_print=lambda s: self.update_tktext(self.reporttext, s))
+        fftplot_kwargs = args_filter(args, FFTPLOT_ARGS)
+        f.fftplot(signal=adc_sample, axes=axes,
+                  override_print=lambda s: self.update_tktext(self.reporttext, s), **fftplot_kwargs)
 
 
 if __name__ == '__main__':

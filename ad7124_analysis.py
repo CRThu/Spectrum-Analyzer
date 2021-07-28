@@ -24,13 +24,13 @@ if __name__ == '__main__':
     file = './data/AD7124_HP;Post Filter;50SPS;Noise;.txt'
     
 
-    adc_sample = dec.data_decode(filename=file, base='dec',
+    adc_sample = dec.data_decode(filepath=file, base='dec',
                                 encode='offset', adcbits=24, fullscale=FS, vbias=vbias)
 
     print('Data length = %d, Range = [%f,%f]' % (
         len(adc_sample), np.min(adc_sample), np.max(adc_sample)))
 
-    f.fftplot(signal=adc_sample, samplerate=fs, Nomalized='dBFS', fullscale=FS, window=window,
+    f.fftplot(signal=adc_sample, samplerate=fs, nomalized='dBFS', fullscale=FS, window=window,
               zoom='Part', zoom_expfin=Zoom_fin,
               HDx_max=20,
               PlotT=True, PlotSA=True, PlotSP=False)

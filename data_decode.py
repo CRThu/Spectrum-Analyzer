@@ -2,15 +2,14 @@ import re
 
 import numpy as np
 
-
 # split: \r\n,;| or others
 # base: hex/dec
 # encode: offset/comp
 # TODO encode:comp
-def data_decode(filename, split='', base='hex', encode='offset',
+def data_decode(filepath, split='', base='hex', encode='offset',
                 adcbits=16, fullscale=5, vbias=0):
     # Read file without blank
-    with open(filename, 'r') as f:
+    with open(filepath, 'r') as f:
         adc_data_strs = f.read().replace(' ', '')
 
     # regex split

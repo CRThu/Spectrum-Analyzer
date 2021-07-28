@@ -23,7 +23,7 @@ if __name__ == '__main__':
     adc_sample = dec.data_decode(path + filename + ext, base='hex',
                                  encode='offset', adcbits=16, fullscale=FS, vbias=vbias)
 
-    f.fftplot(signal=adc_sample, samplerate=fs, Nomalized='dBFS', fullscale=FS, window='HFT248D',
+    f.fftplot(signal=adc_sample, samplerate=fs, nomalized='dBFS', fullscale=FS, window='HFT248D',
               zoom='Part', zoom_expfin=Zoom_fin,
               HDx_max=5,
               PlotT=True, PlotSA=True, PlotSP=False)
