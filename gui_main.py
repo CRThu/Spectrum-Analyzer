@@ -1,6 +1,7 @@
+from matplotlib.figure import Figure
+import numpy as np
 from cmd_parse import DATA_DECODE_ARGS, FFTPLOT_ARGS, args_filter, cmd_parse
 import os
-from matplotlib import pyplot
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
@@ -49,8 +50,10 @@ class Application(tk.Frame):
         if 'filepath' not in argvs_dict:
             argvs_dict['filepath'] = self.filepath.get()
         # print(argvs_dict)
-        self.fig.gca().clear()
-        self.gen_fig(self.fig.gca(), argvs_dict)
+        self.fig.clf()
+        axes = self.fig.gca()
+        self.axes_defaultcfg(axes)
+        self.gen_fig(axes, argvs_dict)
         self.canvas.draw()
 
     def update_tktext(self, text: tk.Text, s: str):
@@ -59,7 +62,7 @@ class Application(tk.Frame):
 
     def create_widgets(self):
         winWidth = 990
-        winHeight = 900
+        winHeight = 660
 
         screenWidth = self.master.winfo_screenwidth()
         screenHeight = self.master.winfo_screenheight()
@@ -111,30 +114,50 @@ class Application(tk.Frame):
 
         # FRAME2
         # pack_toolbar=False will make it easier to use a layout manager later on.
-        self.fig = self.init_fig()
+        self.init_fig()
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame2)
         self.canvas.draw()
         toolbar = NavigationToolbar2Tk(
             self.canvas, self.frame2, pack_toolbar=False)
         toolbar.update()
 
-        toolbar.pack(expand=1, fill=tk.X)
-        self.canvas.get_tk_widget().pack(padx=10, pady=10,expand=1, fill=tk.BOTH)
+        toolbar.pack(expand=1, fill=tk.X, side=tk.BOTTOM)
+        self.canvas.get_tk_widget().pack(
+            padx=10, pady=10, expand=1, fill=tk.BOTH, side=tk.TOP)
 
         # FRAME3
         self.reporttext = tk.Text(master=self.frame3)
         self.reporttext.pack(padx=10, pady=10, expand=1, fill=tk.BOTH)
         self.bind_rightkeyevent(self.frame3, self.reporttext)
         tk.Button(master=self.frame3, text="Quit",
-                  command=lambda: self._quit()).pack(ipadx=10,padx=10, pady=10)
+                  command=lambda: self._quit()).pack(ipadx=10, padx=10, pady=10)
+
+    def axes_defaultcfg(self, axes):
+        axes.format_coord = self.format_coord
 
     def init_fig(self):
-        fig = pyplot.figure(figsize=(8, 5))
-        ax = fig.gca()
+        self.fig = Figure(figsize=(8, 5), dpi=100)
+        ax = self.fig.gca()
+        self.axes_defaultcfg(ax)
         ax.set_title('Init Figure', fontsize=16)
         ax.grid(True, which='both')
-        ax.plot([0, 1, 2, 3, 4, 5])
-        return fig
+        ax.plot([0, 1, 4, 9, 16, 25])
+        ax.plot([0, 1, 8, 27, 64, 125])
+        ax.plot([0, 1, 16, 81, 256, 625])
+
+    def format_coord(self, cursorx, cursory):
+        liney = []
+        axes = self.fig.gca()
+        for line2d in axes.get_lines():
+            datax = line2d.get_xdata()
+            indexx = np.searchsorted(datax, cursorx)
+            if indexx == len(datax):
+                indexx -= 1
+            linex = datax[indexx]
+            liney.append(line2d.get_ydata()[indexx])
+
+        strout = '(%g, %s)' % (linex, ', '.join('%g' % yi for yi in liney))
+        return strout
 
     def gen_fig(self, axes, args: dict):
         data_decode_kwargs = args_filter(args, DATA_DECODE_ARGS)
@@ -151,4 +174,5 @@ if __name__ == '__main__':
     app = Application(master=win)
 
     app.mainloop()
+
     win.quit()
