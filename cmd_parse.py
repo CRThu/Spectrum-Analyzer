@@ -4,7 +4,7 @@ DATA_DECODE_ARGS = ['filepath', 'split', 'base',
                     'encode', 'adcbits', 'fullscale', 'vbias']
 
 FFTPLOT_ARGS = ['samplerate', 'noiseband', 'zoom', 'zoom_expfin',
-                 'zoom_period', 'nomalized', 'fullscale', 'window', 'noise_corr', 'PlotT', 'PlotSA', 'PlotSP', 'HDx_max', 'impedance']
+                'zoom_period', 'nomalized', 'fullscale', 'window', 'noise_corr', 'PlotT', 'PlotSA', 'PlotSP', 'HDx_max', 'impedance']
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -16,7 +16,7 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
-def cmd_parse(argvs: str, remove_none=True):
+def cmd_parse(argvs: str = None, remove_none=True):
     parser = argparse.ArgumentParser(description='cmd parse')
 
     # shared arguments
@@ -46,7 +46,10 @@ def cmd_parse(argvs: str, remove_none=True):
     parser.add_argument('--hdmax', dest='HDx_max', type=int)
     parser.add_argument('--impedance', dest='impedance', type=float)
 
-    args = parser.parse_args(argvs.split())
+    if argvs is None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(argvs.split())
     args_dict = vars(args)
 
     if remove_none:

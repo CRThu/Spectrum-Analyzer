@@ -1,1 +1,1 @@
-python.exe cmd_main.py -f=./data/AD7606_TestData_88d69.txt -db=hex -b=16 -fc=10 -fs=200000 -hd=5
+python.exe cmd_main.py --filepath=D:\Projects\Spectrum-Analyzer\data\AD7606_TestData_88d69.txt --base=hex --adcbits=16 --fullscale=10 --samplerate=200000 --hdmax=5 --window=HFT248D

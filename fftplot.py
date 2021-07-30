@@ -15,7 +15,7 @@ import fftwin
 info = {
     'name': 'SPECTRUM ANALYZER PROGRAM',
     'project': '202116A',
-    'version': '2.6',
+    'version': '2.7',
     'release': 'beta',
     'author': 'programed by carrot',
 }
@@ -39,6 +39,8 @@ def fftplot(signal, samplerate,
     assert nomalized != 'dBm'
     # TODO Recalc Window CPG
     assert window != 'flattop'
+    assert window != 'nuttall3'
+    assert window != 'nuttall4'
 
     FS_Vamp = util.vpp2vamp(fullscale)
 
