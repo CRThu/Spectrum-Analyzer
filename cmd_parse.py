@@ -16,35 +16,38 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+
+# [(argv, dest, type, help), ...]
+ARGVS_TUPLE = [
+    ('--fullscale', 'fullscale', float, 'ADC full scale voltage (V), fullscale of ±5V ADC is 10V'),
+    ('--filepath', 'filepath', str, 'file path, don\'t give this param if using GUI'),
+    ('--split', 'split', str, 'char for data decode in file, default chars: \'\\r\\n,;|\''),
+    ('--base', 'base', str, 'base of number for data decode in file, choose: \'hex\' or \'dec\''),
+    ('--encode', 'encode', str,'encode of number for data decode in file, choose: \'offset\' or \'comp\''),
+    ('--adcbits', 'adcbits', int,'ADC bits'),
+    ('--vbias', 'vbias', float,'ADC Vbias Voltage (V)'),
+    ('--samplerate', 'samplerate', float,'ADC sample rate (Hz)'),
+    ('--noiseband', 'noiseband', float,'ADC noise band for calculate (Hz)'),
+    ('--zoom', 'zoom', str,'zoom at time domain plot, choose: \'All\' or  \'Part\''),
+    ('--fin', 'zoom_expfin', float,'rough frequency for zoom at time domain plot (Hz)'),
+    ('--period', 'zoom_period', float,'periods for zoom at time domain plot'),
+    ('--nomalized', 'nomalized', str,'nomalized convertion, choose: \'dBFS\' or \'dBm\''),
+    ('--window', 'window', str,'window name, recommand: \'HFT90D\' and \'HFT248D\''),
+    ('--noisecorr', 'noise_corr', str2bool,'correction for noise, choose \'true\' or \'false\''),
+    ('--plottime', 'PlotT', str2bool,'display time domain plot, choose \'true\' or \'false\''),
+    ('--plotspectrum', 'PlotSA', str2bool,'display spectrum domain plot, choose \'true\' or \'false\''),
+    ('--plotphase', 'PlotSP', str2bool,'display phase spectrum domain plot, choose \'true\' or \'false\''),
+    ('--hdmax', 'HDx_max', int,'stages of harmonic distortion'),
+    ('--impedance', 'impedance', float,'impedance (R)')
+]
+
+
 def cmd_parse(argvs: str = None, remove_none=True):
-    parser = argparse.ArgumentParser(description='cmd parse')
+    parser = argparse.ArgumentParser(description='Parse Function')
 
-    # shared arguments
-    parser.add_argument('--fullscale', dest='fullscale', type=float)
-
-    # data_decode arguments
-    parser.add_argument('--filepath', dest='filepath', type=str)
-    parser.add_argument('--split', dest='split', type=str)
-    parser.add_argument('--base', dest='base', type=str)
-    parser.add_argument('--encode', dest='encode', type=str)
-    parser.add_argument('--adcbits', dest='adcbits', type=int)
-    parser.add_argument('--vbias', dest='vbias', type=float)
-
-    # fftplot arguments
-    # not import: signal, spurious_existed_freqs, Wave, czt_zoom_window, czt_zoom_ratio, axes, override_print
-    parser.add_argument('--samplerate', dest='samplerate', type=float)
-    parser.add_argument('--noiseband', dest='noiseband', type=float)
-    parser.add_argument('--zoom', dest='zoom', type=str)
-    parser.add_argument('--fin', dest='zoom_expfin', type=float)
-    parser.add_argument('--period', dest='zoom_period', type=float)
-    parser.add_argument('--nomalized', dest='nomalized', type=str)
-    parser.add_argument('--window', dest='window', type=str)
-    parser.add_argument('--noisecorr', dest='noise_corr', type=str2bool)
-    parser.add_argument('--plottime', dest='PlotT', type=str2bool)
-    parser.add_argument('--plotspectrum', dest='PlotSA', type=str2bool)
-    parser.add_argument('--plotphase', dest='PlotSP', type=str2bool)
-    parser.add_argument('--hdmax', dest='HDx_max', type=int)
-    parser.add_argument('--impedance', dest='impedance', type=float)
+    for arginfo in ARGVS_TUPLE:
+        parser.add_argument(arginfo[0], dest=arginfo[1], type=arginfo[2], help=arginfo[3] if len(
+            arginfo) == 4 and arginfo[3] is not None else 'No help info here.')
 
     if argvs is None:
         args = parser.parse_args()
@@ -64,3 +67,7 @@ def args_filter(args: dict, kwl: list):
         if kw in args:
             argsf[kw] = args[kw]
     return argsf
+
+
+if __name__ == '__main__':
+    cmd_parse('-h')

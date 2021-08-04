@@ -15,7 +15,7 @@ import fftwin
 info = {
     'name': 'SPECTRUM ANALYZER PROGRAM',
     'project': '202116A',
-    'version': '2.7',
+    'version': '2.8',
     'release': 'beta',
     'author': 'programed by carrot',
 }

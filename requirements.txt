@@ -1,0 +1,4 @@
+czt==0.0.6
+matplotlib==3.4.2
+numpy==1.21.1
+scipy==1.7.0
