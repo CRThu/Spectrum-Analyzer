@@ -1,3 +1,4 @@
+from gui_set_params import SetParamsDialog
 from matplotlib.figure import Figure
 import numpy as np
 from cmd_parse import DATA_DECODE_ARGS, FFTPLOT_ARGS, args_filter, cmd_parse
@@ -44,6 +45,11 @@ class Application(tk.Frame):
             title='Please choose a data file.', initialdir=self.defaultdir)
         self.defaultdir = os.path.dirname(fn)
         self.filepath.set(fn)
+
+    def set_params(self):
+        setParamsDialog = SetParamsDialog(params=self.argvs.get())
+        self.master.wait_window(setParamsDialog)
+        self.argvs.set(setParamsDialog.paramsinfo)
 
     def update_canvas(self):
         argvs_dict = cmd_parse(self.argvs.get())
@@ -105,12 +111,15 @@ class Application(tk.Frame):
             row=1, column=0, padx=10, pady=10, sticky=tk.W)
         tk.Entry(master=self.frame1, textvariable=self.argvs).grid(
             row=1, column=1, padx=10, pady=10, columnspan=3, sticky=tk.EW)
-        tk.Button(master=self.frame1, text="Open",
+        tk.Button(master=self.frame1, text="Open...",
                   command=lambda: self.choose_datafile()).grid(
             row=2, column=0, padx=10, pady=10, sticky=tk.EW)
+        tk.Button(master=self.frame1, text="Set Params",
+                  command=lambda: self.set_params()).grid(
+            row=2, column=1, padx=10, pady=10, sticky=tk.EW)
         tk.Button(master=self.frame1, text="Update",
                   command=lambda: self.update_canvas()).grid(
-            row=2, column=1, padx=10, pady=10, sticky=tk.EW)
+            row=2, column=2, padx=10, pady=10, sticky=tk.EW)
 
         # FRAME2
         # pack_toolbar=False will make it easier to use a layout manager later on.
