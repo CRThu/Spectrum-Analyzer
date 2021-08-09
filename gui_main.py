@@ -49,7 +49,9 @@ class Application(tk.Frame):
     def set_params(self):
         setParamsDialog = SetParamsDialog(params=self.argvs.get())
         self.master.wait_window(setParamsDialog)
-        self.argvs.set(setParamsDialog.paramsinfo)
+        print('return params:', setParamsDialog.paramsinfo)
+        if setParamsDialog.paramsinfo is not None:
+            self.argvs.set(setParamsDialog.paramsinfo)
 
     def update_canvas(self):
         argvs_dict = cmd_parse(self.argvs.get())

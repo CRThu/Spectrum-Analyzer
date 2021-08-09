@@ -5,32 +5,16 @@ from tkinter import *
 
 
 class SetParamsDialog(tk.Toplevel):
-    def __init__(self):
-        super().__init__()
-        self.title('Set params')
-
-        self.init_gui()
-
     def __init__(self, params=None):
         super().__init__()
         self.title('Set params')
-
+        self.paramsinfo = None
         self.init_gui(params)
 
     def init_gui(self, params=None):
         # draw table
         tframe = Frame(self)
         tframe.pack(fill="x")
-
-        # subkeys = ['argv', 'dest', 'type', 'help']
-        # data_tostr = []
-        # for dic in ARGVS_LIST:
-        #     newdict = sub_dict(dic, subkeys)
-        #     newdict['type'] = newdict['type'].__name__
-        #     newdict['param'] = ''
-        #     data_tostr.append(newdict)
-
-        # data = dict(zip(range(len(data_tostr)), data_tostr))
 
         subkeys = ['argv', 'dest', 'type', 'help']
         data = dict()
