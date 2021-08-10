@@ -1,3 +1,5 @@
+from matplotlib.pyplot import fill
+from tkintertable.Prefs import Preferences
 from cmd_parse import ARGVS_LIST, cmd_parse
 import tkinter as tk
 from tkintertable import TableCanvas, TableModel
@@ -7,14 +9,32 @@ from tkinter import *
 class SetParamsDialog(tk.Toplevel):
     def __init__(self, params=None):
         super().__init__()
-        self.title('Set params')
+        winWidth = 800
+        winHeight = 600
+
+        screenWidth = self.master.winfo_screenwidth()
+        screenHeight = self.master.winfo_screenheight()
+
+        x = int((screenWidth - winWidth) / 2)
+        y = int((screenHeight - winHeight) / 2)
+
+        self.geometry("%sx%s+%s+%s" % (winWidth, winHeight, x, y))
+        self.title('Set params Dialog')
         self.paramsinfo = None
         self.init_gui(params)
 
     def init_gui(self, params=None):
         # draw table
-        tframe = Frame(self)
-        tframe.pack(fill="x")
+        tktframe = Frame(self)
+        tktframe.pack(padx=10, pady=10, expand=1, fill=tk.BOTH)
+
+        # draw buttons
+        btnsframe = tk.Frame(self)
+        btnsframe.pack(fill=X)
+        tk.Button(btnsframe, text="Cancel", command=self.cancel).pack(
+            ipadx=10, padx=10, pady=10, side=RIGHT)
+        tk.Button(btnsframe, text="Ok", command=self.ok).pack(
+            ipadx=10, padx=10, pady=10, side=RIGHT)
 
         subkeys = ['argv', 'dest', 'type', 'help']
         data = dict()
@@ -33,19 +53,19 @@ class SetParamsDialog(tk.Toplevel):
             data[k]['param'] = str(v)
 
         self.model = TableModel()
-        table = TableCanvas(tframe, model=self.model)
+        table = TableCanvas(tktframe, model=self.model)
+
+        perf = {'textsize': 14, 'windowwidth': 800,
+                'windowheight': 600, 'rowheight': 30}
+        preferences = Preferences('SetParamsDialog', perf)
+        table.loadPrefs(preferences)
+
         table.show()
 
         model = table.model
         model.importDict(data)
         # model.addColumn(colname='param')
         table.redraw()
-
-        # buttons
-        row3 = tk.Frame(self)
-        row3.pack(fill="x")
-        tk.Button(row3, text="Cancel", command=self.cancel).pack(side=tk.RIGHT)
-        tk.Button(row3, text="Ok", command=self.ok).pack(side=tk.RIGHT)
 
     def ok(self):
         # find dict with no empty 'param' key
