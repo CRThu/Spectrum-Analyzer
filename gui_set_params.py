@@ -5,7 +5,7 @@ import tkinter as tk
 from tkintertable import TableCanvas, TableModel
 from tkinter import *
 
-
+# reference: https://github.com/dmnfarrell/tkintertable
 class SetParamsDialog(tk.Toplevel):
     def __init__(self, params=None):
         super().__init__()
@@ -55,7 +55,7 @@ class SetParamsDialog(tk.Toplevel):
         self.model = TableModel()
         table = TableCanvas(tktframe, model=self.model)
 
-        perf = {'textsize': 14, 'windowwidth': 800,
+        perf = {'textsize': 12, 'windowwidth': 800,
                 'windowheight': 600, 'rowheight': 30}
         preferences = Preferences('SetParamsDialog', perf)
         table.loadPrefs(preferences)
@@ -64,6 +64,8 @@ class SetParamsDialog(tk.Toplevel):
 
         model = table.model
         model.importDict(data)
+        table.resizeColumn(2,65)
+        table.resizeColumn(3,350)
         # model.addColumn(colname='param')
         table.redraw()
 

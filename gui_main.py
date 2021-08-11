@@ -25,6 +25,28 @@ class Application(tk.Frame):
         self.master.quit()
         self.master.destroy()
 
+    def canvas_scroll(self, event):
+        axtemp = event.inaxes
+        x_min, x_max = axtemp.get_xlim()
+        fanwei_x = (x_max - x_min) / 10
+        if event.button == 'up':
+            axtemp.set(xlim=(x_min + fanwei_x, x_max - fanwei_x))
+        elif event.button == 'down':
+            axtemp.set(xlim=(x_min - fanwei_x, x_max + fanwei_x))
+        self.canvas.draw_idle()
+
+    def canvas_motion(self, event):
+        try:
+            self.line_x.set_ydata(event.ydata)
+            self.line_y.set_xdata(event.xdata)
+
+            self.curtext.set_position((event.xdata, event.ydata))
+            self.curtext.set_text('%f,%f' % (event.xdata, event.ydata))
+
+            self.canvas.draw_idle()
+        except:
+            pass
+
     def bind_rightkeyevent(self, root, control):
         control.bind(
             "<Button-3>", lambda event: self.rightkeyevent(event, root, control))
@@ -132,6 +154,9 @@ class Application(tk.Frame):
             self.canvas, self.frame2, pack_toolbar=False)
         toolbar.update()
 
+        self.canvas.mpl_connect('scroll_event', self.canvas_scroll)
+        self.canvas.mpl_connect('motion_notify_event', self.canvas_motion)
+
         toolbar.pack(expand=1, fill=tk.X, side=tk.BOTTOM)
         self.canvas.get_tk_widget().pack(
             padx=10, pady=10, expand=1, fill=tk.BOTH, side=tk.TOP)
@@ -145,6 +170,10 @@ class Application(tk.Frame):
 
     def axes_defaultcfg(self, axes):
         axes.format_coord = self.format_coord
+
+        self.line_x = axes.axhline(y=0, color='skyblue')
+        self.line_y = axes.axvline(x=0, color='skyblue')
+        self.curtext = axes.text(x=0, y=0, s=str(0), fontsize=10)
 
     def init_fig(self):
         self.fig = Figure(figsize=(8, 5), dpi=100)
