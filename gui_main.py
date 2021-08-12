@@ -37,11 +37,26 @@ class Application(tk.Frame):
 
     def canvas_motion(self, event):
         try:
-            self.line_x.set_ydata(event.ydata)
-            self.line_y.set_xdata(event.xdata)
+            axes = self.fig.gca()
+            line2d = axes.get_lines()[2]
+            datax = line2d.get_xdata()
+            indexx = np.searchsorted(datax, event.xdata)
+            if indexx == len(datax):
+                indexx -= 1
+            linex = datax[indexx]
+            liney = line2d.get_ydata()[indexx]
 
-            self.curtext.set_position((event.xdata, event.ydata))
-            self.curtext.set_text('%f,%f' % (event.xdata, event.ydata))
+            self.curline_x.set_ydata(liney)
+            self.curline_y.set_xdata(linex)
+
+            # self.curtext.set_position((linex, liney))
+            self.curtext.set_text('%g, %g' % (linex, liney))
+
+            # self.curline_x.set_ydata(event.ydata)
+            # self.curline_y.set_xdata(event.xdata)
+
+            # self.curtext.set_position((event.xdata, event.ydata))
+            # self.curtext.set_text('%f,%f' % (event.xdata, event.ydata))
 
             self.canvas.draw_idle()
         except:
@@ -171,9 +186,12 @@ class Application(tk.Frame):
     def axes_defaultcfg(self, axes):
         axes.format_coord = self.format_coord
 
-        self.line_x = axes.axhline(y=0, color='skyblue')
-        self.line_y = axes.axvline(x=0, color='skyblue')
-        self.curtext = axes.text(x=0, y=0, s=str(0), fontsize=10)
+        self.curline_x = axes.axhline(
+            y=0, color='navy', linewidth=0.75, zorder=1000)
+        self.curline_y = axes.axvline(
+            x=0, color='navy', linewidth=0.75, zorder=1000)
+        # self.curtext = axes.text(x=0, y=0, s=str(0), fontsize=10, zorder=1000)
+        self.curtext = axes.text(0.0075, 0.0075, s=str(0), transform=axes.transAxes)
 
     def init_fig(self):
         self.fig = Figure(figsize=(8, 5), dpi=100)
@@ -188,7 +206,8 @@ class Application(tk.Frame):
     def format_coord(self, cursorx, cursory):
         liney = []
         axes = self.fig.gca()
-        for line2d in axes.get_lines():
+        # [0:1] is cursor lines
+        for line2d in axes.get_lines()[2:]:
             datax = line2d.get_xdata()
             indexx = np.searchsorted(datax, cursorx)
             if indexx == len(datax):
