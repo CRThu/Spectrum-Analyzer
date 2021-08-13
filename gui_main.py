@@ -28,17 +28,33 @@ class Application(tk.Frame):
     def canvas_scroll(self, event):
         axtemp = event.inaxes
         x_min, x_max = axtemp.get_xlim()
-        fanwei_x = (x_max - x_min) / 10
+        # fanwei_x = (x_max - x_min) / 15
+        # if event.button == 'up':
+        #     axtemp.set(xlim=(x_min + fanwei_x, x_max - fanwei_x))
+        #     print('xlim',x_min + fanwei_x, x_max - fanwei_x,)
+        # elif event.button == 'down':
+        #     axtemp.set(xlim=(x_min - fanwei_x, x_max + fanwei_x))
+        #     print('xlim',x_min - fanwei_x, x_max + fanwei_x,)
+        scale_speed = 0.075
+        curx_left = event.xdata - x_min
+        curx_right = x_max - event.xdata
         if event.button == 'up':
-            axtemp.set(xlim=(x_min + fanwei_x, x_max - fanwei_x))
+            axtemp.set(xlim=(event.xdata - curx_left * (1 - scale_speed),
+                             event.xdata + curx_right * (1 - scale_speed)))
+            # print('xlim', event.xdata - curx_left * (1-scale_speed),
+            #       event.xdata + curx_right *(1-scale_speed))
         elif event.button == 'down':
-            axtemp.set(xlim=(x_min - fanwei_x, x_max + fanwei_x))
+            axtemp.set(xlim=(event.xdata - curx_left * (1 + scale_speed),
+                             event.xdata + curx_right * (1 + scale_speed)))
+            # print('xlim', event.xdata - curx_left * (1+scale_speed),
+            #       event.xdata + curx_right * (1+scale_speed))
+
         self.canvas.draw_idle()
 
     def canvas_motion(self, event):
         try:
             axes = self.fig.gca()
-            line2d = axes.get_lines()[2]
+            line2d = axes.get_lines()[self.curpos_lineindex + 2]
             datax = line2d.get_xdata()
             indexx = np.searchsorted(datax, event.xdata)
             if indexx == len(datax):
@@ -191,7 +207,9 @@ class Application(tk.Frame):
         self.curline_y = axes.axvline(
             x=0, color='navy', linewidth=0.75, zorder=1000)
         # self.curtext = axes.text(x=0, y=0, s=str(0), fontsize=10, zorder=1000)
-        self.curtext = axes.text(0.0075, 0.0075, s=str(0), transform=axes.transAxes)
+        self.curtext = axes.text(
+            0.0075, 0.0075, s=str(0), transform=axes.transAxes)
+        self.curpos_lineindex = 0
 
     def init_fig(self):
         self.fig = Figure(figsize=(8, 5), dpi=100)

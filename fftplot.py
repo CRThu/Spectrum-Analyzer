@@ -12,10 +12,12 @@ import analysis_util as util
 import czt_zoom
 import fftwin
 
+import timeit
+
 info = {
     'name': 'SPECTRUM ANALYZER PROGRAM',
     'project': '202116A',
-    'version': '2.8',
+    'version': '3.5',
     'release': 'beta',
     'author': 'programed by carrot',
 }
@@ -101,6 +103,9 @@ def fftplot(signal, samplerate,
     signal_win = winN * signal
 
     # FFT
+    # print('timeit 1000 times for fft (sec):',
+    #       timeit.timeit(stmt=lambda: fft(signal_win), number=1000))
+
     signal_fft = fft(signal_win)
     signal_fft = signal_fft[range(half_N)]
 
