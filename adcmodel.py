@@ -5,11 +5,19 @@ import numpy as np
 import analysis_util as util
 
 
-def adcmodel(N=8192, fs=48000, FS=2.5,
-             Wave='sine', Wave_freq=1000, Wave_offset=0, Wave_Vrms=0.7746,
-             HDx=[],
-             adc_bits=None, DR=None,
-             INL=None):
+def adcmodel(samplesnum=1, **kwargs):
+    if samplesnum == 1:
+        # 1-D Numpy array
+        return adcmodel_gensample(**kwargs)
+    else:
+        # 2-D Numpy array
+        return np.array([adcmodel_gensample(**kwargs) for _ in range(samplesnum)])
+
+def adcmodel_gensample(N=8192, fs=48000, FS=2.5,
+                       Wave='sine', Wave_freq=1000, Wave_offset=0, Wave_Vrms=0.7746,
+                       HDx=[],
+                       adc_bits=None, DR=None,
+                       INL=None):
 
     FS_Vrms = FS / 2 / math.sqrt(2)
 
@@ -46,4 +54,7 @@ def adcmodel(N=8192, fs=48000, FS=2.5,
 
 if __name__ == "__main__":
     print('adcmodel')
-    adcmodel()
+    data = adcmodel()
+    print(data.dtype, data.shape)
+    data = adcmodel(samplesnum=128)
+    print(data.dtype, data.shape)

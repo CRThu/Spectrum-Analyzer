@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.pylab import mpl
 from matplotlib.ticker import FormatStrFormatter, MultipleLocator
 from scipy import signal as wd
-from scipy.fft import fft, ifft
+from scipy.fftpack import fft, ifft
 
 import adcmodel
 import analysis_util as util
@@ -34,11 +34,6 @@ def fftplot(signal, samplerate,
     assert window != 'flattop'
     assert window != 'nuttall3'
     assert window != 'nuttall4'
-
-    FS_Vamp = util.vpp2vamp(fullscale)
-
-    N = len(signal)
-    half_N = int(N / 2) + 1
 
     # | variable                | definition                    | length            |
     # | signal                  | signal in, Time domain        | N                 |
@@ -83,6 +78,10 @@ def fftplot(signal, samplerate,
     # | fft_noise_inband_power  | Noise Power in band           | 1                 |
     # | perf_dict               | Performance Dictionary        | ~8                |
 
+    FS_Vamp = util.vpp2vamp(fullscale)
+    N = len(signal[0])
+    half_N = int(N / 2) + 1
+
     ### FFT ###
     signal_k = np.arange(N)
 
@@ -91,14 +90,15 @@ def fftplot(signal, samplerate,
     if fftwin.has_window(window):
         winN = fftwin.get_window(window, N)
 
+    # signal is N*D numpy array
+    # winN is N*1 numpy array
+    # signal_win is N*D numpy array
     signal_win = winN * signal
 
     # FFT
-    # print('timeit 1000 times for fft (sec):',
-    #       timeit.timeit(stmt=lambda: fft(signal_win), number=1000))
-
-    signal_fft = fft(signal_win)
-    signal_fft = signal_fft[range(half_N)]
+    # signal_fft is N*D numpy array
+    signal_fft = fft(signal_win, axis=1)
+    signal_fft = signal_fft[0:half_N]
 
     #fft_k = np.arange(half_N)
     fft_freq = np.linspace(0, samplerate / 2, half_N)
@@ -108,7 +108,7 @@ def fftplot(signal, samplerate,
 
     # FFT Nomalized : DC & Vamp
     fft_mod[0] = fft_mod[0] / N
-    fft_mod[range(1, half_N)] = fft_mod[range(1, half_N)] * 2 / N
+    fft_mod[1:] = fft_mod[1:] *( 2 / N)
 
     # dBFS Calc
     fft_mod_dbfs = np.zeros(half_N)
@@ -130,8 +130,9 @@ def fftplot(signal, samplerate,
     guess_signal_bin_err_range = (
         guess_signal_bin - 1, guess_signal_bin + 1)
     # Guess exact signal bin
+    ####### TODO #########
     bins_zoomed, czt_zoomed = czt_zoom.czt_zoom(
-        signal * fftwin.get_window(czt_zoom_window, N), guess_signal_bin_err_range, N, zoom=czt_zoom_ratio)
+        signal[0] * fftwin.get_window(czt_zoom_window, N), guess_signal_bin_err_range, N, zoom=czt_zoom_ratio)
     guess_exact_signal_bin = bins_zoomed[np.argmax(abs(czt_zoomed))]
     # Guess harmonic distortion bin
     guess_exact_hd_bins = util.guess_fft_hd_bin(
@@ -235,17 +236,18 @@ def fftplot(signal, samplerate,
         ax.set_xlabel('Samples')
         ax.set_ylabel('Voltage')
         ax.grid(True, which='both')
+        ####### TODO #########
         if zoom == 'All':
             if Wave == 'Raw':
-                #ax.plot(signal_k, signal, linewidth = 1, marker = '.', markersize = 2)
-                ax.plot(signal_k, signal, linewidth=1)
+                #ax.plot(signal_k, signal[0], linewidth = 1, marker = '.', markersize = 2)
+                ax.plot(signal_k, signal[0], linewidth=1)
             elif Wave == 'Windowed':
                 ax.plot(signal_k, signal_win,
                         linewidth=1, marker='.', markersize=2)
         elif zoom == 'Part':
             assert zoom_expfin > 0
             ax.plot(signal_k[range(round(samplerate / zoom_expfin * zoom_period))],
-                    signal[range(
+                    signal[0][range(
                         round(samplerate / zoom_expfin * zoom_period))],
                     linewidth=1, marker='.', markersize=2)
 
@@ -375,13 +377,13 @@ if __name__ == '__main__':
     #Wave_freq = 1000.105
     Wave_freq = 1000.11
 
-    adcout = adcmodel.adcmodel(N=N, fs=fs, FS=FS,
+    adcout = adcmodel.adcmodel(N=N, fs=fs, FS=FS,samplesnum=128,
                                HDx=[-95, -90, -100],
                                Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=Wave_Vrms,
                                adc_bits=None, DR=100)
 
-    print('Data length = %d, Range = [%f,%f]' % (
-        len(adcout), np.min(adcout), np.max(adcout)))
+    print('Data shape = %s, Range = [%f, %f]' % (
+        adcout.shape, np.min(adcout), np.max(adcout)))
 
     # Time
     #fftplot(signal = adcout, fs = fs, Zoom = 'Part', Zoom_fin = min(Wave_freq) * 0.995, Nomalized = 'dBFS', FS = FS)
@@ -399,4 +401,4 @@ if __name__ == '__main__':
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
     fftplot(signal=adcout, samplerate=fs, nomalized='dBFS', fullscale=FS, window='HFT248D',
             zoom='Part', zoom_expfin=Wave_freq,  # noise_band=0.5 * fs / 2,
-            PlotT=True, PlotSA=True, PlotSP=False)
+            PlotT=False, PlotSA=True, PlotSP=False)
