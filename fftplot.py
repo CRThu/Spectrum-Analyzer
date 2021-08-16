@@ -12,15 +12,6 @@ import analysis_util as util
 import czt_zoom
 import fftwin
 
-import timeit
-
-info = {
-    'name': 'SPECTRUM ANALYZER PROGRAM',
-    'project': '202116A',
-    'version': '3.5',
-    'release': 'beta',
-    'author': 'programed by carrot',
-}
 
 def fftplot(signal, samplerate,
             noiseband=None, spurious_existed_freqs=((),),
