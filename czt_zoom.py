@@ -38,7 +38,7 @@ def czt_zoom(sig, freq_range, fs, zoom=10):
     # Phase correction: t0 = 0
     # phase = np.exp(-2j * np.pi * 0 * freq_zoomed)
     # Chirp Z-transform
-    czt_zoomed = czt.czt(sig, len(freq_zoomed), W, A)
+    czt_zoomed = czt.czt(sig, len(freq_zoomed), W, A,t_method='mm')
     #sig_f_zoom = czt.czt(sig, len(freq_zoomed), W, A) * phase
 
     freq_zoomed *= fs

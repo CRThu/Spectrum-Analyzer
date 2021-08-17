@@ -12,14 +12,13 @@ import analysis_util as util
 import czt_zoom
 import fftwin
 
-
 def fftplot(signal, samplerate,
             noiseband=None, spurious_existed_freqs=((),),
             Wave='Raw',
             zoom='All', zoom_expfin=None, zoom_period=3,
             nomalized='dBFS', fullscale=None,
             window='HFT248D',
-            czt_zoom_window='blackmanharris', czt_zoom_ratio=10,
+            czt_zoom_window='blackmanharris', czt_zoom_ratio=5,
             noise_corr=True,
             PlotT=False, PlotSA=True, PlotSP=False,
             HDx_max=9,
@@ -35,14 +34,8 @@ def fftplot(signal, samplerate,
     assert window != 'nuttall3'
     assert window != 'nuttall4'
 
-    FS_Vamp = util.vpp2vamp(fullscale)
-
-    N = len(signal)
-    half_N = int(N / 2) + 1
-
     # | variable                | definition                    | length            |
     # | signal                  | signal in, Time domain        | N                 |
-    # | signal_k                | sample counts, Time domain    | N                 |
     # | winN                    | window for fft                | N                 |
     # | signal_win              | signal in, Windowed           | N                 |
     # | signal_fft              | signal in, Spectrum domain    | int(N / 2) + 1    |
@@ -83,9 +76,13 @@ def fftplot(signal, samplerate,
     # | fft_noise_inband_power  | Noise Power in band           | 1                 |
     # | perf_dict               | Performance Dictionary        | ~8                |
 
-    ### FFT ###
-    signal_k = np.arange(N)
+    FS_Vamp = util.vpp2vamp(fullscale)
 
+    N = len(signal)
+    half_N = int(N / 2) + 1
+
+    ### FFT ###
+    print('Running FFT...')
     # Window
     #winN = wd.blackmanharris(N)
     if fftwin.has_window(window):
@@ -100,7 +97,6 @@ def fftplot(signal, samplerate,
     signal_fft = fft(signal_win)
     signal_fft = signal_fft[range(half_N)]
 
-    #fft_k = np.arange(half_N)
     fft_freq = np.linspace(0, samplerate / 2, half_N)
 
     fft_mod = np.abs(signal_fft)
@@ -108,17 +104,15 @@ def fftplot(signal, samplerate,
 
     # FFT Nomalized : DC & Vamp
     fft_mod[0] = fft_mod[0] / N
-    fft_mod[range(1, half_N)] = fft_mod[range(1, half_N)] * 2 / N
+    fft_mod[1:half_N] = fft_mod[1:half_N] * (2 / N)
 
     # dBFS Calc
-    fft_mod_dbfs = np.zeros(half_N)
     assert fullscale > 0
-    # Nomalized : FS
-    fft_mod_dbfs = fft_mod / FS_Vamp
-    # Nomalized : dB
-    fft_mod_dbfs = util.vratio2db_np(fft_mod_dbfs)
+    # Nomalized : dBFS
+    fft_mod_dbfs = util.vratio2db_np(fft_mod / FS_Vamp)
 
     ### ANALYSIS ###
+    print('Running Analysis...')
     # Generate Mask bins
     fft_mod_len = len(fft_mod)
     current_window_mainlobe = fftwin.get_window_mainlobe_width(window=window)
@@ -156,10 +150,10 @@ def fftplot(signal, samplerate,
     # hd2 hd3 ... hdx  bins & freqs & powers
     # TODO: Find peak power around distortion
     fft_hd_bins = guess_hd_bins
-    fft_hd_freqs = [fft_freq[x] for x in fft_hd_bins]
+    fft_hd_freqs = np.array([fft_freq[x] for x in fft_hd_bins])
     fft_exact_hd_freqs = guess_exact_hd_bins / N * samplerate
-    fft_hd_amps = [fft_mod[x] for x in fft_hd_bins]
-    fft_hd_dbfs = [fft_mod_dbfs[x] for x in fft_hd_bins]
+    fft_hd_amps = np.array([fft_mod[x] for x in fft_hd_bins])
+    fft_hd_dbfs = np.array([fft_mod_dbfs[x] for x in fft_hd_bins])
 
     # Spurious
     # throw exist spurious
@@ -219,12 +213,15 @@ def fftplot(signal, samplerate,
         vspur=fft_spur_amp)
 
     ### GUI ###
+    print('Running Plot...')
     # GUI Config
     mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei']
     mpl.rcParams['axes.unicode_minus'] = False
     mpl.rcParams['mathtext.fontset'] = 'cm'
 
     if PlotT == True:
+        signal_k = np.arange(N)
+
         # Time Domain Plot
         if axes is None:
             fig = plt.figure(figsize=(8, 5))
@@ -365,7 +362,7 @@ if __name__ == '__main__':
     # Sample Info
     N = 16384
     fs = 193986.56
-    FS = 2.191    #Wave_Vrms = 0.776
+    FS = 2.191  # Wave_Vrms = 0.776
     Wave_Vrms = util.vpp2vrms(FS)
     Wave = 'sine'
     Wave_offset = 0
@@ -378,7 +375,7 @@ if __name__ == '__main__':
                                Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=Wave_Vrms,
                                adc_bits=None, DR=100)
 
-    print('Data length = %d, Range = [%f,%f]' % (
+    print('Data length = %d, Range = [%f, %f]' % (
         len(adcout), np.min(adcout), np.max(adcout)))
 
     # Time
@@ -397,4 +394,4 @@ if __name__ == '__main__':
     #fftplot(signal = adcout, fs = fs, Nomalized = 'dBFS', FS = FS, Window = 'HFT248D', Zoom = 'Part', Zoom_fin = Wave_freq)
     fftplot(signal=adcout, samplerate=fs, nomalized='dBFS', fullscale=FS, window='HFT248D',
             zoom='Part', zoom_expfin=Wave_freq,  # noise_band=0.5 * fs / 2,
-            PlotT=True, PlotSA=True, PlotSP=False)
+            PlotT=False, PlotSA=True, PlotSP=False)
