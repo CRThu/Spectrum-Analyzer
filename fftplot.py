@@ -365,10 +365,8 @@ if __name__ == '__main__':
     # Sample Info
     N = 16384
     fs = 193986.56
-    FS = 2.5
-    FS_Vrms = FS / 2 / math.sqrt(2)
-    #Wave_Vrms = 0.776
-    Wave_Vrms = FS_Vrms
+    FS = 2.191    #Wave_Vrms = 0.776
+    Wave_Vrms = util.vpp2vrms(FS)
     Wave = 'sine'
     Wave_offset = 0
     #Wave_freq = 1001.22

@@ -168,7 +168,7 @@ def mask_bins_gen(center_bins, mainlobe, arr_len):
 def mask_array(arr_in, mask_bins, fill=0):
     arr = np.array(arr_in).copy()
     for mask_bin in mask_bins:
-        if len(mask_bin)==2:
+        if len(mask_bin) == 2:
             if mask_bin[0] < 0 or mask_bin[0] > len(arr) - 1 \
                     or mask_bin[1] < 0 or mask_bin[1] > len(arr) - 1 \
                     or mask_bin[0] > mask_bin[1]:

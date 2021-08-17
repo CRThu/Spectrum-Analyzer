@@ -1,4 +1,5 @@
 import math
+import random
 
 import numpy as np
 
@@ -15,6 +16,7 @@ def adcmodel(samplesnum=1, **kwargs):
 
 def adcmodel_gensample(N=8192, fs=48000, FS=2.5,
                        Wave='sine', Wave_freq=1000, Wave_offset=0, Wave_Vrms=0.7746,
+                       Wave_phase=None,
                        HDx=[],
                        adc_bits=None, DR=None,
                        INL=None):
@@ -24,10 +26,11 @@ def adcmodel_gensample(N=8192, fs=48000, FS=2.5,
     # Sine Wave Generate
     t = np.linspace(0, N / fs, N)
 
-    sinout = np.empty(N)
-    sinout.fill(Wave_offset)
+    sinout = np.full(N, fill_value=Wave_offset, dtype=np.float64)
 
-    sinout += util.vrms2vamp(Wave_Vrms) * np.sin(2 * np.pi * Wave_freq * t + 0)
+    if Wave_phase is None:
+        Wave_phase = random.uniform(-np.pi, np.pi)
+    sinout += util.vrms2vamp(Wave_Vrms) * np.sin(2 * np.pi * Wave_freq * t + Wave_phase)
 
     for index in range(len(HDx)):
         sinout += util.vpp2vamp(FS * util.db2vratio(HDx[index])) * \
@@ -48,13 +51,12 @@ def adcmodel_gensample(N=8192, fs=48000, FS=2.5,
         sinout = np.round(sinout / lsb) * lsb
 
     sinout -= np.mean(sinout)
-
     return sinout
 
 
 if __name__ == "__main__":
     print('adcmodel')
-    data = adcmodel()
+    data = adcmodel(DR=100)
     print(data.dtype, data.shape)
-    data = adcmodel(samplesnum=128)
+    data = adcmodel(DR=100, samplesnum=4)
     print(data.dtype, data.shape)

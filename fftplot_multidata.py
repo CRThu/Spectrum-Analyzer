@@ -90,15 +90,15 @@ def fftplot(signal, samplerate,
     if fftwin.has_window(window):
         winN = fftwin.get_window(window, N)
 
-    # signal is N*D numpy array
+    # signal is N*2 numpy array
     # winN is N*1 numpy array
-    # signal_win is N*D numpy array
+    # signal_win is N*2 numpy array
     signal_win = winN * signal
 
     # FFT
-    # signal_fft is N*D numpy array
+    # signal_fft is N*2 numpy array
     signal_fft = fft(signal_win, axis=1)
-    signal_fft = signal_fft[0:half_N]
+    signal_fft = signal_fft[:, 0:half_N]
 
     #fft_k = np.arange(half_N)
     fft_freq = np.linspace(0, samplerate / 2, half_N)
@@ -107,8 +107,8 @@ def fftplot(signal, samplerate,
     fft_phase = np.angle(signal_fft)
 
     # FFT Nomalized : DC & Vamp
-    fft_mod[0] = fft_mod[0] / N
-    fft_mod[1:] = fft_mod[1:] *( 2 / N)
+    fft_mod[:, 0] = fft_mod[:, 0] / N
+    fft_mod[:, 1:] = fft_mod[:, 1:] * (2 / N)
 
     # dBFS Calc
     fft_mod_dbfs = np.zeros(half_N)
@@ -117,6 +117,11 @@ def fftplot(signal, samplerate,
     fft_mod_dbfs = fft_mod / FS_Vamp
     # Nomalized : dB
     fft_mod_dbfs = util.vratio2db_np(fft_mod_dbfs)
+
+    # avg
+    # fft_mod=fft_mod[0]
+    fft_mod = np.average(fft_mod, axis=0)
+    fft_mod_dbfs = util.vratio2db_np(fft_mod / FS_Vamp)
 
     ### ANALYSIS ###
     # Generate Mask bins
@@ -210,6 +215,9 @@ def fftplot(signal, samplerate,
     # Noise
     fft_noise_inband_vrms = util.vamp2vrms(fft_noise_inband_amp)
     fft_noise_inband_power = util.vamp2dbm(fft_noise_inband_amp, Z=impedance)
+
+    print(np.average(fft_mod), np.average(fft_mod_noise_inband),
+          fft_noise_inband_vrms, fft_noise_inband_power)
 
     # Performance
     perf_dict = util.perf_calc(
@@ -367,17 +375,17 @@ if __name__ == '__main__':
     # Sample Info
     N = 16384
     fs = 193986.56
-    FS = 2.5
-    FS_Vrms = FS / 2 / math.sqrt(2)
+    FS = 2.191
+    FS_Vrms = 0
     #Wave_Vrms = 0.776
-    Wave_Vrms = FS_Vrms
+    Wave_Vrms = util.vpp2vrms(FS)
     Wave = 'sine'
     Wave_offset = 0
     #Wave_freq = 1001.22
     #Wave_freq = 1000.105
     Wave_freq = 1000.11
 
-    adcout = adcmodel.adcmodel(N=N, fs=fs, FS=FS,samplesnum=128,
+    adcout = adcmodel.adcmodel(N=N, fs=fs, FS=FS, samplesnum=128,
                                HDx=[-95, -90, -100],
                                Wave=Wave, Wave_freq=Wave_freq, Wave_offset=Wave_offset, Wave_Vrms=Wave_Vrms,
                                adc_bits=None, DR=100)
