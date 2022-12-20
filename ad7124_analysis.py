@@ -16,12 +16,12 @@ if __name__ == '__main__':
     window='HFT248D'
 
     #file = './data/AD7124_Test;SNR;FREQ;1;AMPS;400;PTS;1024;.txt'
-    #file = './data/AD7124_Test;SNR;FREQ;0.1;AMPS;400;PTS;8192;.txt'
+    file = './data/AD7124_Test;SNR;FREQ;0.1;AMPS;400;PTS;8192;.txt'
     #file = './data/AD7124_Test;SNR;FREQ;1;AMPS;40;PTS;8192;.txt'
     #file = './data/AD7124_Test;SNR;FREQ;1;AMPS;400;PTS;8192;.txt'
     #file = './data/AD7124_Test;SNR;FREQ;1;AMPS;2300;PTS;8192;.txt'
     #file = './data/AD7124_Test;SNR;FREQ;1;AMPS;4800;PTS;8192;.txt'
-    file = './data/AD7124_HP;Post Filter;50SPS;Noise;.txt'
+    #file = './data/AD7124_HP;Post Filter;50SPS;Noise;.txt'
     
 
     adc_sample = dec.data_decode(filepath=file, base='dec',

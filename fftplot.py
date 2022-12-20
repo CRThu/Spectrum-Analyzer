@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pylab import mpl
 from matplotlib.ticker import FormatStrFormatter, MultipleLocator
-from scipy import signal as wd
 from scipy.fft import fft, ifft
 
 import adcmodel
 import analysis_util as util
 import czt_zoom
 import fftwin
+
 
 def fftplot(signal, samplerate,
             noiseband=None, spurious_existed_freqs=((),),
@@ -95,7 +95,7 @@ def fftplot(signal, samplerate,
     #       timeit.timeit(stmt=lambda: fft(signal_win), number=1000))
 
     signal_fft = fft(signal_win)
-    signal_fft = signal_fft[range(half_N)]
+    signal_fft = signal_fft[0:half_N]
 
     fft_freq = np.linspace(0, samplerate / 2, half_N)
 
@@ -104,7 +104,7 @@ def fftplot(signal, samplerate,
 
     # FFT Nomalized : DC & Vamp
     fft_mod[0] = fft_mod[0] / N
-    fft_mod[1:half_N] = fft_mod[1:half_N] * (2 / N)
+    fft_mod[1:] = fft_mod[1:] * (2 / N)
 
     # dBFS Calc
     assert fullscale > 0
