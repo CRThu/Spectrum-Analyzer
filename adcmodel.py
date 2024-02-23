@@ -14,13 +14,14 @@ def adcmodel(samplesnum=1, **kwargs):
         # 2-D Numpy array
         return np.array([adcmodel_gensample(**kwargs) for _ in range(samplesnum)])
 
+
 def adcmodel_gensample(N=8192, fs=48000, FS=2.5,
                        Wave='sine', Wave_freq=1000, Wave_offset=0, Wave_Vrms=0.7746,
                        Wave_phase=None,
                        HDx=[],
                        adc_bits=None, DR=None,
-                       INL=None):
-
+                       INL=None,
+                       output='volt'):
     FS_Vrms = FS / 2 / math.sqrt(2)
 
     # Sine Wave Generate
@@ -34,11 +35,11 @@ def adcmodel_gensample(N=8192, fs=48000, FS=2.5,
 
     for index in range(len(HDx)):
         sinout += util.vpp2vamp(FS * util.db2vratio(HDx[index])) * \
-            np.sin(2 * np.pi * (index + 2) * Wave_freq * t + 0)
+                  np.sin(2 * np.pi * (index + 2) * Wave_freq * t + 0)
 
     ### ERR ###
     # Over Full Scale
-    #np.clip(sinout, 0, FS/2)
+    # np.clip(sinout, 0, FS/2)
 
     ### Noise ###
     # White Noise
@@ -48,9 +49,16 @@ def adcmodel_gensample(N=8192, fs=48000, FS=2.5,
     # Quantization Noise
     if adc_bits is not None:
         lsb = FS / (2 ** adc_bits)
-        sinout = np.round(sinout / lsb) * lsb
+        # Output Type
+        if output == 'volt':
+            sinout = np.round(sinout / lsb) * lsb
+        else:  # 'code'
+            sinout = np.round(sinout / lsb)
+            # Over Full Scale
+            sinout = np.clip(sinout, -(2 ** adc_bits) / 2, (2 ** adc_bits) / 2 - 1)
 
-    sinout -= np.mean(sinout)
+    # sinout -= np.mean(sinout)
+
     return sinout
 
 
